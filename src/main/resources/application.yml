@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
+
+server:
+  port: 8080
+
+jwt:
+  issuer: CRYPTO
+  secret: ${JWT_SECRET}
+  refresh-secret: ${JWT_REFRESH_SECRET}
+  reset-secret: ${JWT_RESET_SECRET}
+  access-ttl: 15m
+  refresh-ttl: 7d
+  reset-ttl: 10m
+  clock-skew: 30s
+
+otp:
+  ttl-seconds: 300
+  cooldown-seconds: 60
+  limit:
+    per-hour: 5
+    ip-hourly: 20
+
+aws:
+  region: ${AWS_REGION}
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
+
+ses:
+  from:
+    email: thuanminhle0107@gmail.com
+    name: Bank Security
+
+api:
+  prefix: /api/v1
