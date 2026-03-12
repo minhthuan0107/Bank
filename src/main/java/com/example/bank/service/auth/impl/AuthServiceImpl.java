@@ -21,7 +21,7 @@ import com.example.bank.repository.user.RoleRepository;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.service.auth.AuthService;
 import com.example.bank.service.auth.AuthSessionService;
-import com.example.bank.service.wallet.WalletService;
+import com.example.bank.service.wallet.admin.WalletService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

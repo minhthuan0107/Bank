@@ -1,6 +1,7 @@
 package com.example.bank.entity.wallet;
 
 import com.example.bank.common.model.BaseEntity;
+import com.example.bank.enums.wallet.Stablecoin;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,8 +19,9 @@ import java.math.BigDecimal;
         @Column(name = "id")
         private Long id;
 
+        @Enumerated(EnumType.STRING)
         @Column(name = "currency", nullable = false, length = 10, unique = true)
-        private String currency;
+        private Stablecoin currency;
 
         @Column(name = "fee_percent", nullable = false, precision = 5, scale = 2)
         private BigDecimal feePercent;

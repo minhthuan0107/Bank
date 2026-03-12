@@ -1,6 +1,7 @@
 package com.example.bank.entity.wallet;
 
 import com.example.bank.common.model.BaseEntity;
+import com.example.bank.enums.wallet.Stablecoin;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,8 +19,9 @@ public class DepositAddress extends BaseEntity {
     @Column(name = "id")
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "currency", nullable = false, length = 10)
-    private String currency;
+    private Stablecoin currency;
 
     @Column(name = "network", nullable = false, length = 20)
     private String network;

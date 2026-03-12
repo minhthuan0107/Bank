@@ -1,6 +1,7 @@
-package com.example.bank.dto.request.wallet;
+package com.example.bank.dto.request.wallet.admin;
 
 import com.example.bank.common.constants.MessageKeys;
+import com.example.bank.enums.wallet.Stablecoin;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -15,7 +16,7 @@ import java.math.BigDecimal;
         @NotBlank(message = "{" + MessageKeys.VALIDATION_CURRENCY_NOT_BLANK + "}")
         @Size(max = 10, message = "{" + MessageKeys.VALIDATION_CURRENCY_MAX_LENGTH + "}")
         @JsonProperty("currency")
-        private String currency;
+        private Stablecoin currency;
 
         @NotNull(message = "{" + MessageKeys.VALIDATION_FEE_PERCENT_NOT_NULL + "}")
         @DecimalMin(value = "0.0", message = "{" + MessageKeys.VALIDATION_FEE_PERCENT_MIN + "}")

@@ -1,8 +1,9 @@
-package com.example.bank.service.wallet.impl;
+package com.example.bank.service.wallet.admin.impl;
 
 import com.example.bank.entity.wallet.Wallet;
+import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.repository.wallet.WalletRepository;
-import com.example.bank.service.wallet.WalletService;
+import com.example.bank.service.wallet.admin.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,7 @@ public class WalletServiceImpl implements WalletService {
 
         Wallet wallet = Wallet.builder()
                 .userId(userId)
-                .currency("USD")
+                .currency(Stablecoin.USDT)
                 .balance(BigDecimal.ZERO)
                 .frozenBalance(BigDecimal.ZERO)
                 .status("ACTIVE")
