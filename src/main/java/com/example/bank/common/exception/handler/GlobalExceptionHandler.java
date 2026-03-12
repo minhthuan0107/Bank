@@ -4,6 +4,7 @@ package com.example.bank.common.exception.handler;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.auth.*;
 import com.example.bank.common.exception.base.BusinessException;
+import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -241,10 +242,24 @@ public class GlobalExceptionHandler {
         ));
     }
     /**
-     * Bắt lỗi domain liên quan đến Post.
+     * Bắt lỗi domain liên quan đến Auth.
      */
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<?> handlePostException(AuthException ex) {
+    public ResponseEntity<?> handleAuthException(AuthException ex) {
+        String localized = i18n.getLocalizedMessage(ex.getMessageKey());
+        return ResponseEntity.status(
+                ex.getStatus()).body(Map.of(
+                "status", ex.getStatus().value(),
+                "type", ex.getStatus().name(),
+                "message", localized
+        ));
+    }
+
+    /**
+     * Bắt lỗi domain liên quan đến Post.
+     */
+    @ExceptionHandler(WalletException.class)
+    public ResponseEntity<?> handleWalletException(WalletException ex) {
         String localized = i18n.getLocalizedMessage(ex.getMessageKey());
         return ResponseEntity.status(
                 ex.getStatus()).body(Map.of(

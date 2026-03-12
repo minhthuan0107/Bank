@@ -1,4 +1,4 @@
-package com.example.bank.controller.user;
+package com.example.bank.controller.user.auth;
 
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;

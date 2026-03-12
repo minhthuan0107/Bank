@@ -50,6 +50,23 @@ public class MessageKeys {
     public static final String OTP_INVALID = "auth.otp.invalid";
     public static final String EMAIL_ALREADY_EXISTS = "auth.email.already_exists";
 
+    // ===== CURRENCY =====
+    public static final String VALIDATION_CURRENCY_NOT_BLANK = "validation.currency.not_blank";
+    public static final String VALIDATION_CURRENCY_MAX_LENGTH = "validation.currency.max_length";
+    // ===== FEE PERCENT =====
+    public static final String VALIDATION_FEE_PERCENT_NOT_NULL = "validation.fee_percent.not_null";
+    public static final String VALIDATION_FEE_PERCENT_MIN = "validation.fee_percent.min";
+    public static final String VALIDATION_FEE_PERCENT_MAX = "validation.fee_percent.max";
+    // ===== MIN AMOUNT =====
+    public static final String VALIDATION_MIN_AMOUNT_NOT_NULL = "validation.min_amount.not_null";
+    public static final String VALIDATION_MIN_AMOUNT_MIN = "validation.min_amount.min";
+    // ===== MAX AMOUNT =====
+    public static final String VALIDATION_MAX_AMOUNT_MIN = "validation.max_amount.min";
+    public static final String VALIDATION_MAX_AMOUNT_GREATER_THAN_MIN = "validation.max_amount.greater_than_min";
+    public static final String DEPOSIT_SETTINGS_CREATED = "deposit.settings.created";
+    public static final String DEPOSIT_SETTINGS_ALREADY_EXISTS = "deposit.settings.already_exists";
+
+
 
 
 

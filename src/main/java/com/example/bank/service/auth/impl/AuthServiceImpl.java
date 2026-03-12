@@ -9,7 +9,6 @@ import com.example.bank.common.exception.auth.AuthException;
 import com.example.bank.common.exception.auth.ForbiddenLoginException;
 import com.example.bank.common.exception.auth.OtpException;
 import com.example.bank.common.exception.auth.UnauthorizedException;
-import com.example.bank.common.exception.base.BusinessException;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.auth.SignupRequest;
 import com.example.bank.dto.response.auth.TokenResponse;
@@ -22,6 +21,7 @@ import com.example.bank.repository.user.RoleRepository;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.service.auth.AuthService;
 import com.example.bank.service.auth.AuthSessionService;
+import com.example.bank.service.wallet.WalletService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private Role defaultUserRole;
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redisTemplate;
+    private final WalletService walletService;
     @PostConstruct
     public void init() {
         defaultUserRole = roleRepository.findByName("USER")
@@ -159,7 +160,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Chặn admin login kênh user
-        if (principal.isAdmin()) {
+        /*if (principal.isAdmin()) {
             auditAndDeny(
                     ctx,
                     username,
@@ -167,7 +168,7 @@ public class AuthServiceImpl implements AuthService {
                     MessageKeys.ACCESS_DENIED
             );
         }
-
+        */
     }
 
     // Hàm audit và ném ForbiddenLoginException
@@ -312,6 +313,9 @@ public class AuthServiceImpl implements AuthService {
         try {
 
             userRepository.save(user);
+
+            //Tạo wallet cho user
+            walletService.createWallet(user.getId());
 
             log.info("AUTH-SIGNUP-SUCCESS: username={}, email={}, ip={}",
                     maskUsername(username),

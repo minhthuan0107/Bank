@@ -6,7 +6,6 @@ import com.example.bank.common.constants.RedisKeys;
 import com.example.bank.common.context.AuthContext;
 import com.example.bank.common.exception.auth.OtpException;
 import com.example.bank.dto.request.otp.OtpRequest;
-import com.example.bank.dto.request.otp.OtpVerifyRequest;
 import com.example.bank.dto.response.otp.OtpEnqueuedResponse;
 import com.example.bank.enums.otp.OtpPurpose;
 import com.example.bank.service.mail.MailService;
@@ -14,7 +13,6 @@ import com.example.bank.service.otp.OtpService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 

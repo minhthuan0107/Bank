@@ -34,7 +34,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
      */
     public UserDetails loadUserById(Long userId) {
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdWithRole(userId)
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
                                 "User not found with id: " + userId
