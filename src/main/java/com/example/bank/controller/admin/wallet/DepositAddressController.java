@@ -3,9 +3,9 @@ package com.example.bank.controller.admin.wallet;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
-import com.example.bank.dto.request.wallet.admin.CreateDepositSettingsRequest;
-import com.example.bank.dto.response.wallet.response.DepositSettingsResponse;
-import com.example.bank.service.wallet.admin.DepositSettingsService;
+import com.example.bank.dto.request.wallet.admin.CreateDepositAddressRequest;
+import com.example.bank.dto.response.wallet.response.DepositAddressResponse;
+import com.example.bank.service.wallet.admin.DepositAddressService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,24 +17,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("${api.prefix}/admin/deposit-settings")
+@RequestMapping("${api.prefix}/admin/deposit-addresses")
 @RequiredArgsConstructor
-public class DepositSettingsController {
+public class DepositAddressController {
 
-    private final DepositSettingsService service;
+    private final DepositAddressService service;
     private final LocalizationUtils i18n;
 
     @PostMapping("/created")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<DepositSettingsResponse>> createDepositSettings(
-            @Valid @RequestBody CreateDepositSettingsRequest request
+    public ResponseEntity<ApiResponse<DepositAddressResponse>> createDepositAddress(
+            @Valid @RequestBody CreateDepositAddressRequest request
     ) {
-        DepositSettingsResponse response = service.createDepositSettings(request);
+
+        DepositAddressResponse response = service.createDepositAddress(request);
 
         return ResponseEntity.ok(
                 ApiResponse.created(
-                        HttpStatus.CREATED.value(),
-                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_SETTINGS_CREATED),
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_ADDRESS_CREATED),
                         response
                 )
         );

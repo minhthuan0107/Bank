@@ -4,6 +4,7 @@ package com.example.bank.common.exception.handler;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.auth.*;
 import com.example.bank.common.exception.base.BusinessException;
+import com.example.bank.common.exception.user.UserException;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
@@ -17,6 +18,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -146,6 +148,24 @@ public class GlobalExceptionHandler {
                 )
         );
     }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<?>> handleInvalidEnum(
+            MethodArgumentTypeMismatchException ex
+    ) {
+        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error(
+                            HttpStatus.BAD_REQUEST.value(),
+                            i18n.getLocalizedMessage(
+                                    MessageKeys.VALIDATION_INVALID_ENUM
+                            )
+                    )
+            );
+        }
+
+        return ResponseEntity.badRequest().build();
+    }
+
 
 
     /**
@@ -256,10 +276,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Bắt lỗi domain liên quan đến Post.
+     * Bắt lỗi domain liên quan đến Wallet.
      */
     @ExceptionHandler(WalletException.class)
     public ResponseEntity<?> handleWalletException(WalletException ex) {
+        String localized = i18n.getLocalizedMessage(ex.getMessageKey());
+        return ResponseEntity.status(
+                ex.getStatus()).body(Map.of(
+                "status", ex.getStatus().value(),
+                "type", ex.getStatus().name(),
+                "message", localized
+        ));
+    }
+
+    /**
+     * Bắt lỗi domain liên quan đến User.
+     */
+    @ExceptionHandler(UserException.class)
+    public ResponseEntity<?> handleUserException(UserException ex) {
         String localized = i18n.getLocalizedMessage(ex.getMessageKey());
         return ResponseEntity.status(
                 ex.getStatus()).body(Map.of(

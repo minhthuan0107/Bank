@@ -1,4 +1,4 @@
-package com.example.bank.dto.response.wallet;
+package com.example.bank.dto.response.wallet.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
@@ -8,13 +8,10 @@ import java.math.BigDecimal;
 
 @Getter
 @Builder
-public class DepositSettingsResponse {
+public class DepositConfigResponse {
 
-    @JsonProperty("id")
-    private Long id;
-
-    @JsonProperty("currency")
-    private String currency;
+    @JsonProperty("balance")
+    private BigDecimal balance;
 
     @JsonProperty("fee_percent")
     private BigDecimal feePercent;
@@ -24,8 +21,5 @@ public class DepositSettingsResponse {
 
     @JsonProperty("max_amount")
     private BigDecimal maxAmount;
-
-    @JsonProperty("status")
-    private String status;
 
 }

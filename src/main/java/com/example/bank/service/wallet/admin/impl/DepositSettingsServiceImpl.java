@@ -1,12 +1,12 @@
-package com.example.bank.service.wallet.impl;
+package com.example.bank.service.wallet.admin.impl;
 
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
-import com.example.bank.dto.request.wallet.CreateDepositSettingsRequest;
-import com.example.bank.dto.response.wallet.DepositSettingsResponse;
+import com.example.bank.dto.request.wallet.admin.CreateDepositSettingsRequest;
+import com.example.bank.dto.response.wallet.response.DepositSettingsResponse;
 import com.example.bank.entity.wallet.DepositSettings;
 import com.example.bank.repository.wallet.DepositSettingsRepository;
-import com.example.bank.service.wallet.DepositSettingsService;
+import com.example.bank.service.wallet.admin.DepositSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

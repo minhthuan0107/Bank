@@ -1,6 +1,7 @@
 package com.example.bank.repository.user;
 
 import com.example.bank.entity.user.User;
+import com.example.bank.enums.user.AccountStatus;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,6 +24,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
             WHERE u.id = :id
             """)
     Optional<User> findByIdWithRole(@Param("id") Long id);
+
+    @Query("""
+       SELECT u
+       FROM User u
+       JOIN u.role r
+       WHERE r.name = 'ADMIN'
+       AND u.status = :status
+       """)
+    Optional<User> findActiveAdmin(@Param("status") AccountStatus status);
+
 
 
 }

@@ -1,6 +1,7 @@
 package com.example.bank.entity.wallet;
 
 import com.example.bank.common.model.BaseEntity;
+import com.example.bank.enums.wallet.Stablecoin;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,8 +25,9 @@ public class Wallet extends BaseEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "currency", nullable = false, length = 10)
-    private String currency;
+    private Stablecoin currency;
 
     @Column(name = "balance", nullable = false, precision = 19, scale = 4)
     private BigDecimal balance;

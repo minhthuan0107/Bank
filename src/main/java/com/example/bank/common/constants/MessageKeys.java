@@ -27,6 +27,8 @@ public class MessageKeys {
     public static final String VALIDATION_PASSWORD_LENGTH = "validation.password.length";
     public static final String VALIDATION_INVALID_ENUM = "validation.invalid-enum";
     public static final String VALIDATION_OTP_PURPOSE_NOT_NULL = "validation.otp.purpose.not-null";
+    public static final String VALIDATION_AMOUNT_NOT_NULL = "validation.amount.not_null";
+    public static final String VALIDATION_AMOUNT_MIN = "validation.amount.min";
 
     public static final String REQUEST_INVALID = "request.invalid";
 
@@ -65,6 +67,39 @@ public class MessageKeys {
     public static final String VALIDATION_MAX_AMOUNT_GREATER_THAN_MIN = "validation.max_amount.greater_than_min";
     public static final String DEPOSIT_SETTINGS_CREATED = "deposit.settings.created";
     public static final String DEPOSIT_SETTINGS_ALREADY_EXISTS = "deposit.settings.already_exists";
+
+    public static final String VALIDATION_NETWORK_NOT_BLANK = "validation.network.not_blank";
+    public static final String VALIDATION_NETWORK_MAX_LENGTH = "validation.network.max_length";
+
+    public static final String VALIDATION_DEPOSIT_ADDRESS_NOT_BLANK = "validation.deposit_address.not_blank";
+    public static final String VALIDATION_DEPOSIT_ADDRESS_MAX_LENGTH = "validation.deposit_address.max_length";
+
+    public static final String VALIDATION_DISPLAY_ORDER_NOT_NULL = "validation.display_order.not_null";
+
+    public static final String DEPOSIT_ADDRESS_ALREADY_EXISTS = "deposit.address.already_exists";
+    public static final String DEPOSIT_ADDRESS_CREATED = "deposit.address.created";
+
+    public static final String DEPOSIT_CONFIG_FETCHED = "deposit.config.fetched";
+    public static final String DEPOSIT_SETTINGS_NOT_FOUND = "deposit.settings.not_found";
+    public static final String WALLET_NOT_FOUND = "wallet.not_found";
+
+
+
+    public static final String DEPOSIT_AMOUNT_BELOW_MIN = "deposit.amount_below_min";
+    public static final String DEPOSIT_ADDRESS_NOT_FOUND = "deposit.address_not_found";
+    public static final String ADMIN_NOT_FOUND = "admin.not_found";
+
+    public static final String DEPOSIT_PREVIEW_FETCHED = "deposit.preview_fetched";
+
+
+    public static final String DEPOSIT_ORDER_RATE_LIMIT = "deposit.order_rate_limit";
+
+    public static final String DEPOSIT_ORDER_CREATED = "deposit.order.created";
+    public static final String VALIDATION_CURRENCY_NOT_NULL = "validation.currency.not_null";
+
+
+
+
 
 
 
