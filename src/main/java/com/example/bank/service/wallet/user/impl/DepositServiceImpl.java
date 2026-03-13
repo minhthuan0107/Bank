@@ -1,5 +1,6 @@
 package com.example.bank.service.wallet.user.impl;
 
+import com.example.bank.common.config.r2.R2Service;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.constants.RedisKeys;
 import com.example.bank.common.exception.auth.OtpException;
@@ -7,30 +8,34 @@ import com.example.bank.common.exception.user.UserException;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.CreateDepositOrderRequest;
 import com.example.bank.dto.request.wallet.user.DepositPreviewRequest;
-import com.example.bank.dto.response.wallet.user.CreateDepositOrderResponse;
-import com.example.bank.dto.response.wallet.user.DepositConfigResponse;
-import com.example.bank.dto.response.wallet.user.DepositPreviewResponse;
+import com.example.bank.dto.response.wallet.user.*;
 import com.example.bank.entity.user.User;
-import com.example.bank.entity.wallet.DepositAddress;
-import com.example.bank.entity.wallet.DepositOrder;
-import com.example.bank.entity.wallet.DepositSettings;
-import com.example.bank.entity.wallet.Wallet;
+import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.user.AccountStatus;
+import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.repository.user.UserRepository;
-import com.example.bank.repository.wallet.DepositAddressRepository;
-import com.example.bank.repository.wallet.DepositOrderRepository;
-import com.example.bank.repository.wallet.DepositSettingsRepository;
-import com.example.bank.repository.wallet.WalletRepository;
+import com.example.bank.repository.wallet.*;
 import com.example.bank.service.wallet.user.DepositService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -44,8 +49,17 @@ public class DepositServiceImpl implements DepositService {
     private final DepositAddressRepository depositAddressRepository;
     private final DepositOrderRepository depositOrderRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    private final R2Service r2Service;
+    private final DepositOrderImageRepository depositOrderImageRepository;
 
+    private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_DEPOSIT_PER_HOUR = 10;
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;private static final int MAX_IMAGES = 5;
+    private static final List<String> ALLOWED_TYPES = List.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
 
 
     @Override
@@ -229,4 +243,151 @@ public class DepositServiceImpl implements DepositService {
             );
         }
     }
+
+    @Transactional
+    public void uploadDepositImages(
+            String orderNo,
+            List<MultipartFile> images,
+            Long userId
+    ) {
+
+        validateImagesRequest(images);
+
+        DepositOrder order = depositOrderRepository
+                .findByOrderNoAndUserId(orderNo, userId)
+                .orElseThrow(() ->
+                        new WalletException(
+                                MessageKeys.DEPOSIT_ORDER_NOT_FOUND,
+                                HttpStatus.NOT_FOUND
+                        )
+                );
+
+        validateOrderForUpload(order);
+
+        List<DepositOrderImage> entities = new ArrayList<>();
+        int displayOrder = 1;
+
+        for (MultipartFile file : images) {
+
+            validateImage(file);
+
+            String url = r2Service.upload(file, orderNo);
+
+            DepositOrderImage image = new DepositOrderImage();
+            image.setDepositOrderId(order.getId());
+            image.setImageUrl(url);
+            image.setDisplayOrder(displayOrder++);
+
+            entities.add(image);
+        }
+
+        depositOrderImageRepository.saveAll(entities);
+    }
+
+    private void validateImagesRequest(List<MultipartFile> images) {
+
+        if (images == null || images.isEmpty()) {
+            throw new WalletException(
+                    MessageKeys.DEPOSIT_PROOF_REQUIRED,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        if (images.size() > MAX_IMAGES) {
+            throw new WalletException(
+                    MessageKeys.DEPOSIT_PROOF_MAX_IMAGES,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    private void validateOrderForUpload(DepositOrder order) {
+
+        if (order.getStatus() != DepositOrderStatus.PENDING) {
+            throw new WalletException(
+                    MessageKeys.DEPOSIT_ORDER_INVALID_STATUS,
+                    HttpStatus.CONFLICT
+            );
+        }
+        boolean exists = depositOrderImageRepository
+                .existsByDepositOrderId(order.getId());
+        if (exists) {
+            throw new WalletException(
+                    MessageKeys.DEPOSIT_PROOF_ALREADY_UPLOADED,
+                    HttpStatus.CONFLICT
+            );
+        }
+    }
+
+    private void validateImage(MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new WalletException(
+                    MessageKeys.FILE_EMPTY,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new WalletException(
+                    MessageKeys.FILE_TOO_LARGE,
+                    HttpStatus.PAYLOAD_TOO_LARGE
+            );
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
+            throw new WalletException(
+                    MessageKeys.FILE_INVALID_TYPE,
+                    HttpStatus.UNSUPPORTED_MEDIA_TYPE
+            );
+        }
+
+        // kiểm tra file có thực sự là ảnh
+        try (InputStream is = file.getInputStream()) {
+            BufferedImage image = ImageIO.read(is);
+            if (image == null) {
+                throw new WalletException(
+                        MessageKeys.FILE_INVALID_IMAGE,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+        } catch (IOException e) {
+            throw new WalletException(
+                    MessageKeys.FILE_READ_ERROR,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    public DepositOrderPageResponse getUserDepositOrders(
+            Long userId,
+            int page
+    ) {
+
+        Pageable pageable = PageRequest.of(
+                page,
+                DEFAULT_PAGE_SIZE,
+                Sort.by(Sort.Direction.DESC, "id")
+        );
+
+        Page<DepositOrder> orders =
+                depositOrderRepository.findByUserId(userId, pageable);
+
+        List<DepositOrderListResponse> items =
+                orders.getContent()
+                        .stream()
+                        .map(DepositOrderListResponse::from)
+                        .toList();
+
+        return DepositOrderPageResponse.builder()
+                .items(items)
+                .page(page)
+                .size(DEFAULT_PAGE_SIZE)
+                .totalSize(orders.getTotalElements())
+                .hasNext(orders.hasNext())
+                .build();
+    }
+
 }

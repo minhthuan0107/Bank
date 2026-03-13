@@ -4,7 +4,7 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.admin.CreateDepositSettingsRequest;
-import com.example.bank.dto.response.wallet.response.DepositSettingsResponse;
+import com.example.bank.dto.response.wallet.admin.DepositSettingsResponse;
 import com.example.bank.service.wallet.admin.DepositSettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,13 +1,15 @@
-package com.example.bank.dto.response.wallet.response;
+package com.example.bank.dto.response.wallet.admin;
 
 import com.example.bank.enums.wallet.Stablecoin;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
+
 @Getter
 @Builder
-public class DepositAddressResponse {
+public class DepositSettingsResponse {
 
     @JsonProperty("id")
     private Long id;
@@ -15,15 +17,16 @@ public class DepositAddressResponse {
     @JsonProperty("currency")
     private Stablecoin currency;
 
-    @JsonProperty("network")
-    private String network;
+    @JsonProperty("fee_percent")
+    private BigDecimal feePercent;
 
-    @JsonProperty("address")
-    private String address;
+    @JsonProperty("min_amount")
+    private BigDecimal minAmount;
 
-    @JsonProperty("display_order")
-    private Integer displayOrder;
+    @JsonProperty("max_amount")
+    private BigDecimal maxAmount;
 
     @JsonProperty("status")
     private String status;
+
 }

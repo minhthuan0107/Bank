@@ -97,6 +97,20 @@ public class MessageKeys {
     public static final String DEPOSIT_ORDER_CREATED = "deposit.order.created";
     public static final String VALIDATION_CURRENCY_NOT_NULL = "validation.currency.not_null";
 
+    public static final String DEPOSIT_PROOF_REQUIRED = "deposit.proof.required";
+    public static final String DEPOSIT_PROOF_MAX_IMAGES = "deposit.proof.max_images";
+    public static final String DEPOSIT_ORDER_NOT_FOUND = "deposit.order.not_found";
+    public static final String DEPOSIT_ORDER_INVALID_STATUS = "deposit.order.invalid_status";
+
+    public static final String FILE_EMPTY = "file.empty";
+    public static final String FILE_TOO_LARGE = "file.too_large";
+    public static final String FILE_INVALID_TYPE = "file.invalid_type";
+    public static final String FILE_INVALID_IMAGE = "file.invalid_image";
+    public static final String FILE_READ_ERROR = "file.read_error";
+    public static final String DEPOSIT_PROOF_UPLOADED_SUCCESS = "deposit.proof.uploaded.success";
+    public static final String DEPOSIT_PROOF_ALREADY_UPLOADED ="deposit.proof.already_uploaded";
+    public static final String DEPOSIT_ORDER_LIST_SUCCESS = "deposit.order.list.success";
+
 
 
 

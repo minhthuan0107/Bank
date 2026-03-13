@@ -21,7 +21,11 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
 
   jackson:
-    time-zone: Asia/Ho_Chi_Minh
+    generator:
+      write-bigdecimal-as-plain: true
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
 
 server:
   port: 8080
@@ -52,6 +56,13 @@ ses:
   from:
     email: thuanminhle0107@gmail.com
     name: Bank Security
+
+r2:
+  endpoint: ${R2_ENDPOINT}
+  access-key: ${R2_ACCESS_KEY}
+  secret-key: ${R2_SECRET_KEY}
+  bucket: ${R2_BUCKET}
+  public-url: ${R2_PUBLIC_URL}
 
 api:
   prefix: /api/v1

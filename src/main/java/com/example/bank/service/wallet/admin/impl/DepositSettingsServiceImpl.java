@@ -3,7 +3,7 @@ package com.example.bank.service.wallet.admin.impl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.admin.CreateDepositSettingsRequest;
-import com.example.bank.dto.response.wallet.response.DepositSettingsResponse;
+import com.example.bank.dto.response.wallet.admin.DepositSettingsResponse;
 import com.example.bank.entity.wallet.DepositSettings;
 import com.example.bank.repository.wallet.DepositSettingsRepository;
 import com.example.bank.service.wallet.admin.DepositSettingsService;
