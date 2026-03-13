@@ -7,17 +7,22 @@ import com.example.bank.dto.request.wallet.user.CreateDepositOrderRequest;
 import com.example.bank.dto.request.wallet.user.DepositPreviewRequest;
 import com.example.bank.dto.response.wallet.user.CreateDepositOrderResponse;
 import com.example.bank.dto.response.wallet.user.DepositConfigResponse;
+import com.example.bank.dto.response.wallet.user.DepositOrderPageResponse;
 import com.example.bank.dto.response.wallet.user.DepositPreviewResponse;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.service.wallet.user.DepositService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 
 
 @RestController
@@ -84,4 +89,49 @@ public class DepositController {
                 )
         );
     }
+
+    @PostMapping(
+            value = "/orders/{orderNo}/images",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ApiResponse<?>> uploadDepositImages(
+
+            @PathVariable String orderNo,
+            @RequestPart("images")
+            List<MultipartFile> images,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+
+    ) {
+
+        depositService.uploadDepositImages(orderNo, images,currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.ok(
+                        HttpStatus.OK.value(),
+                        MessageKeys.DEPOSIT_PROOF_UPLOADED_SUCCESS
+                )
+        );
+    }
+
+    @GetMapping("/orders-list")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<DepositOrderPageResponse>> getDepositOrders(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+
+    ) {
+        DepositOrderPageResponse data =
+                depositService.getUserDepositOrders(
+                        currentUser.getId(),
+                        page
+                );
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        MessageKeys.DEPOSIT_ORDER_LIST_SUCCESS,
+                        data
+                )
+        );
+    }
 }
+
