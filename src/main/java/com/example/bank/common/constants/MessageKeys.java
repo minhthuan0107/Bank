@@ -112,7 +112,23 @@ public class MessageKeys {
     public static final String DEPOSIT_ORDER_LIST_SUCCESS = "deposit.order.list.success";
 
 
+    public static final String VALIDATION_WITHDRAW_ADDRESS_NOT_BLANK = "validation.withdraw.address.not.blank";
+    public static final String VALIDATION_WITHDRAW_ADDRESS_MAX_LENGTH = "validation.withdraw.address.max.length";
+    public static final String VALIDATION_WITHDRAW_AMOUNT_MIN = "validation.withdraw.amount.min";
 
+
+    public static final String WITHDRAW_ORDER_ALREADY_PENDING = "wallet.withdraw.order.already.pending";
+    public static final String WITHDRAW_DAILY_LIMIT_REACHED = "wallet.withdraw.daily.limit.reached";
+    public static final String USER_NOT_FOUND = "user.not.found";
+
+    public static final String WITHDRAW_ORDER_NOT_FOUND = "wallet.withdraw.order.not.found";
+    public static final String WITHDRAW_INVALID_STATUS = "wallet.withdraw.invalid.status";
+    public static final String WITHDRAW_OTP_EXPIRED = "wallet.withdraw.otp.expired";
+    public static final String WITHDRAW_OTP_INVALID = "wallet.withdraw.otp.invalid";
+    public static final String WITHDRAW_OTP_TOO_MANY_ATTEMPTS = "wallet.withdraw.otp.too.many.attempts";
+    public static final String WITHDRAW_ORDER_CREATED = "withdraw.order.created";
+    public static final String WITHDRAW_OTP_CONFIRMED = "withdraw.otp.confirmed";
+    public static final String OTP_RESENT = "otp.resent";
 
 
 

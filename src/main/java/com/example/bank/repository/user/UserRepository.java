@@ -34,6 +34,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
        """)
     Optional<User> findActiveAdmin(@Param("status") AccountStatus status);
 
+    @Query("SELECT u.email FROM User u WHERE u.id = :userId")
+    Optional<String> findEmailByUserId(Long userId);
+
 
 
 }

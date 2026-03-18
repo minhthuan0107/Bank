@@ -30,6 +30,24 @@ public class RedisKeys {
                 LocalDateTime.now().format(HOUR_FORMAT);
     }
 
+    public static String withdrawOtpValueKey(String orderNo) {
+        return "otp:withdraw:value:" + orderNo;
+    }
+
+    public static String withdrawOtpCooldownKey(String email) {
+        return "otp:withdraw:cooldown:email:" + email;
+    }
+
+    public static String withdrawOtpEmailHourlyKey(String email) {
+        return "otp:withdraw:hour:email:" + email;
+    }
+    public static String withdrawOtpAttemptKey(String orderNo) {
+        return "otp:withdraw:attempt:" + orderNo;
+    }
+
+
+
+
 
 
 

@@ -28,7 +28,7 @@ public class SesMailService implements MailService {
 
         String body = """
                 Your OTP code is: %s
-                This code will expire in 5 minutes.
+                This code will expire in 3 minutes.
                 If you did not request this, please ignore this email.
                 """.formatted(otp);
 
