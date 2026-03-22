@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -38,7 +39,7 @@ public class AuthSessionServiceImpl implements AuthSessionService {
             String ip,
             String userAgent
     ) {
-        LocalDateTime now = LocalDateTime.now();
+       Instant now = Instant.now();
 
         User userRef = userRepository.getReferenceById(principal.getId());
         // Tạo phiên mới
