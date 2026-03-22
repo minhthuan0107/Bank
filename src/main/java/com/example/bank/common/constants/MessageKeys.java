@@ -5,8 +5,10 @@ public class MessageKeys {
     public static final String USER_ACCOUNT_DELETED = "auth.account-deleted";
     public static final String USER_ACCOUNT_LOCKED = "auth.account-locked";
     public static final String SESSION_EXPIRED   = "auth.session.expired";
+    public static final String ACCOUNT_NOT_FOUND = "account.not.found";
     public static final String RESET_TOKEN_INVALID = "reset.token.invalid";
     public static final String RESET_SESSION_EXPIRED = "reset.session.expired";
+    public static final String SESSION_REFRESHED = "auth.session.refreshed";
 
 
 

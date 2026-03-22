@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -32,7 +33,7 @@ public class UserDetailsImpl implements UserDetails, Serializable {
 
     private AccountStatus status; // ACTIVE / LOCKED / SUSPENDED
 
-    private LocalDateTime deletedAt;
+    private Instant deletedAt;
 
     private Collection<? extends GrantedAuthority> authorities;
 

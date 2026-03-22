@@ -8,4 +8,6 @@ public interface AuthService {
     TokenResponse signin(String username, String password, HttpServletRequest request);
 
     void signup (SignupRequest request, HttpServletRequest httpRequest);
+
+    TokenResponse refreshAccessToken(String refreshToken, HttpServletRequest request);
 }

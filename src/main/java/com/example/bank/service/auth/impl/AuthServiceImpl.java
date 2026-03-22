@@ -9,6 +9,7 @@ import com.example.bank.common.exception.auth.AuthException;
 import com.example.bank.common.exception.auth.ForbiddenLoginException;
 import com.example.bank.common.exception.auth.OtpException;
 import com.example.bank.common.exception.auth.UnauthorizedException;
+import com.example.bank.common.utils.HashUtils;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.auth.SignupRequest;
 import com.example.bank.dto.response.auth.TokenResponse;
@@ -17,11 +18,13 @@ import com.example.bank.entity.user.Role;
 import com.example.bank.entity.user.User;
 import com.example.bank.enums.auth.AuthFailReason;
 import com.example.bank.enums.user.AccountStatus;
+import com.example.bank.repository.auth.AuthSessionRepository;
 import com.example.bank.repository.user.RoleRepository;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.service.auth.AuthService;
 import com.example.bank.service.auth.AuthSessionService;
 import com.example.bank.service.wallet.admin.WalletService;
+import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redisTemplate;
     private final WalletService walletService;
+    private final AuthSessionRepository authSessionRepository;
     @PostConstruct
     public void init() {
         defaultUserRole = roleRepository.findByName("USER")
@@ -160,7 +166,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Chặn admin login kênh user
-        /*if (principal.isAdmin()) {
+        if (principal.isAdmin()) {
             auditAndDeny(
                     ctx,
                     username,
@@ -168,7 +174,6 @@ public class AuthServiceImpl implements AuthService {
                     MessageKeys.ACCESS_DENIED
             );
         }
-        */
     }
 
     // Hàm audit và ném ForbiddenLoginException
@@ -346,4 +351,132 @@ public class AuthServiceImpl implements AuthService {
                 + "***"
                 + email.substring(at);
     }
+
+    /**
+     * Làm mới access token từ refresh token
+     */
+    @Override
+    @Transactional
+    public TokenResponse refreshAccessToken(String refreshToken, HttpServletRequest request) {
+        // Validate refresh token không rỗng
+        validateRefreshTokenNotBlank(refreshToken, request);
+
+        // Parse & extract claims từ refresh token
+        Claims claims = jwtTokenUtils.safeParseRefreshClaims(refreshToken);
+        validateRefreshTokenType(claims, request);
+
+        // Lấy thông tin từ claims
+        Long userId = Long.valueOf(claims.getSubject());
+        Long sessionId = claims.get("sid", Long.class);
+        Integer tokenPv = claims.get("pv", Integer.class);
+
+        // Load session (kiểm tra revoked, expired, hash)
+        loadAndValidateSession(sessionId, userId, refreshToken);
+
+        // Load user đầy đủ (eager load)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException(
+                        MessageKeys.ACCOUNT_NOT_FOUND,
+                        HttpStatus.UNAUTHORIZED));
+
+        // Kiểm tra user status (lock/disabled/deleted)
+        ensureUserAllowedToLogin(user);
+
+        // Kiểm tra password version (nếu user đổi mật khẩu, token cũ không dùng được)
+        if (!tokenPv.equals(user.getPasswordVersion())) {
+            log.warn("AUTH-REFRESH-FAIL: password version mismatch, userId={}", userId);
+            throw new UnauthorizedException(
+                    MessageKeys.SESSION_INVALID,
+                    HttpStatus.UNAUTHORIZED);
+        }
+        // Cập nhật lastUsedAt của session
+        authSessionRepository.updateLastUsedAtById(sessionId, Instant.now());
+        // Sinh access token mới
+        UserDetailsImpl principal = UserDetailsImpl.from(user);
+        String accessToken = jwtTokenUtils.generateAccessToken(principal);
+
+        log.info("AUTH-REFRESH-SUCCESS: userId={}, sid={}", userId, sessionId);
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+
+    // ================================
+    // Validate refresh token không rỗng
+    private void validateRefreshTokenNotBlank(String refreshToken, HttpServletRequest request) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            log.warn("AUTH-REFRESH-FAIL: token missing, ip={}", AuthContext.resolveClientIp(request));
+            throw new UnauthorizedException(
+                    MessageKeys.SESSION_INVALID,
+                    HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    // Validate token type = refresh
+    private void validateRefreshTokenType(Claims claims, HttpServletRequest request) {
+        if (!"refresh".equals(claims.get("typ"))) {
+            log.warn("AUTH-REFRESH-FAIL: typ!=refresh, ip={}", AuthContext.resolveClientIp(request));
+            throw new UnauthorizedException(
+                    MessageKeys.SESSION_INVALID,
+                    HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    // Load & validate session (kiểm tra revoke, expire, hash)
+    private AuthSession loadAndValidateSession(Long sessionId, Long userId, String refreshToken) {
+        // Load session
+        AuthSession session = authSessionRepository.findByIdAndUserId(sessionId, userId)
+                .orElseThrow(() -> {
+                    log.warn("AUTH-REFRESH-FAIL: session not found, sid={}, userId={}", sessionId, userId);
+                    return new UnauthorizedException(
+                            MessageKeys.SESSION_INVALID,
+                            HttpStatus.UNAUTHORIZED);
+                });
+
+        // Kiểm tra session bị revoke
+        if (Boolean.TRUE.equals(session.getIsRevoked())) {
+            log.warn("AUTH-REFRESH-FAIL: session revoked, sid={}, userId={}", sessionId, userId);
+            throw new UnauthorizedException(
+                    MessageKeys.SESSION_INVALID,
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        // Kiểm tra session expired
+        if (session.getExpiresAt().isBefore(Instant.now())) {
+            log.warn("AUTH-REFRESH-FAIL: session expired, sid={}, userId={}", sessionId, userId);
+            throw new UnauthorizedException(
+                    MessageKeys.SESSION_EXPIRED,
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        // Kiểm tra hash refresh token khớp
+        String expectedHash = session.getRefreshTokenHash();
+        String actualHash = HashUtils.sha256Hex(refreshToken);
+        if (expectedHash == null || actualHash == null || !expectedHash.equals(actualHash)) {
+            log.warn("AUTH-REFRESH-FAIL: invalid refresh token, sid={}, userId={}", sessionId, userId);
+            throw new UnauthorizedException(
+                    MessageKeys.SESSION_INVALID,
+                    HttpStatus.UNAUTHORIZED);
+        }
+        return session;
+    }
+
+    //Check trạng thái user trước khi login bằng OAuth
+    private void ensureUserAllowedToLogin(User user) {
+        if (user.getStatus() == AccountStatus.DELETED) {
+            log.warn("AUTH-BLOCKED reason=DELETED userId={}", user.getId());
+            throw new UnauthorizedException(
+                    MessageKeys.USER_ACCOUNT_DELETED,
+                    HttpStatus.UNAUTHORIZED);
+        }
+        if (user.getStatus() == AccountStatus.LOCKED) {
+            log.warn("AUTH-BLOCKED reason=LOCKED userId={}", user.getId());
+            throw new UnauthorizedException(
+                    MessageKeys.USER_ACCOUNT_LOCKED,
+                    HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
 }

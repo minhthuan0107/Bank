@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -46,11 +47,11 @@ public class AuthSession {
 
     /** Thời điểm cấp refresh token */
     @Column(name = "issued_at")
-    private LocalDateTime issuedAt;
+    private Instant issuedAt;
 
     /** Thời điểm hết hạn token */
     @Column(name = "expires_at")
-    private  LocalDateTime expiresAt;
+    private  Instant expiresAt;
 
     /** Trạng thái thu hồi (false = active, true = revoked) */
     @Column(name = "is_revoked")
@@ -58,28 +59,28 @@ public class AuthSession {
 
     /** Thời điểm bị thu hồi*/
     @Column(name = "revoked_at")
-    private  LocalDateTime revokedAt;
+    private Instant revokedAt;
 
     /** Lần cuối dùng để refresh token */
     @Column(name = "last_used_at")
-    private  LocalDateTime lastUsedAt;
+    private  Instant lastUsedAt;
 
     /** Gán giá trị mặc định khi tạo mới phiên */
     @PrePersist
     protected void onCreate() {
         if (this.issuedAt == null)
-            this.issuedAt =  LocalDateTime.now();
+            this.issuedAt =  Instant.now();
     }
 
     /** Thu hồi token */
     public void revoke() {
         this.isRevoked = true;
-        this.revokedAt =  LocalDateTime.now();
+        this.revokedAt =  Instant.now();
     }
 
     /** Cập nhật lần cuối sử dụng */
     public void updateLastUsed() {
-        this.lastUsedAt =  LocalDateTime.now();
+        this.lastUsedAt =  Instant.now();
     }
 
 }

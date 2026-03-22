@@ -14,10 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("${api.prefix}/auth")
@@ -52,6 +49,23 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.created(
                 HttpStatus.CREATED.value(),
                 i18n.getLocalizedMessage(MessageKeys.SIGNUP_SUCCESS)));
+    }
+
+    // Api làm mới access token
+    @PermitAll
+    @PostMapping("/refresh-token")
+    public ResponseEntity<SigninResponse> refreshAccessToken(@RequestHeader("X-Refresh-Token") String refreshToken,
+                                                             HttpServletRequest request
+    ) {
+        TokenResponse tokens = authService.refreshAccessToken(refreshToken, request);
+        // Trả response thống nhất
+        return ResponseEntity.ok(
+                SigninResponse.builder()
+                        .status(HttpStatus.OK.value())
+                        .message(i18n.getLocalizedMessage(MessageKeys.SESSION_REFRESHED))
+                        .tokens(tokens)
+                        .build()
+        );
     }
 
 }
