@@ -17,7 +17,6 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     public void createWallet(Long userId) {
-
         Wallet wallet = Wallet.builder()
                 .userId(userId)
                 .currency(Stablecoin.USDT)

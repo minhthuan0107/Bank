@@ -1,4 +1,4 @@
-package com.example.bank.service.auth.impl;
+package com.example.bank.service.auth.user.impl;
 
 import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.config.security.jwt.JwtProperties;
@@ -9,7 +9,7 @@ import com.example.bank.entity.auth.AuthSession;
 import com.example.bank.entity.user.User;
 import com.example.bank.repository.auth.AuthSessionRepository;
 import com.example.bank.repository.user.UserRepository;
-import com.example.bank.service.auth.AuthSessionService;
+import com.example.bank.service.auth.user.AuthSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Slf4j
 @Service
