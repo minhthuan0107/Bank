@@ -131,6 +131,19 @@ public class MessageKeys {
     public static final String WITHDRAW_ORDER_CREATED = "withdraw.order.created";
     public static final String WITHDRAW_OTP_CONFIRMED = "withdraw.otp.confirmed";
     public static final String OTP_RESENT = "otp.resent";
+    public static final String WITHDRAW_ORDER_LIST_SUCCESS = "withdraw.order.list.success";
+    public static final String WALLET_INSUFFICIENT_BALANCE = "wallet.balance.insufficient";
+    public static final String VALIDATION_STATUS_NOT_NULL = "validation.withdraw.status.not_null";
+    public static final String VALIDATION_ADMIN_NOTE_MAX_LENGTH = "validation.withdraw.admin_note.max_length";
+    public static final String INVALID_PAGE_NUMBER = "common.invalid.page.number";
+
+    public static final String WITHDRAW_TOO_MANY_REQUESTS = "withdraw.too_many_requests";
+    public static final String WITHDRAW_STATUS_UPDATED = "withdraw.status.updated";
+    public static final String ADMIN_WITHDRAW_ORDER_LIST_SUCCESS = "admin.withdraw.order.list.success";
+
+    public static final String TOO_MANY_REQUESTS = "common.too.many.requests";
+
+
 
 
 

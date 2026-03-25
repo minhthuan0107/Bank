@@ -3,10 +3,13 @@ package com.example.bank.controller.user.wallet;
 import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
+import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.user.ConfirmWithdrawOtpRequest;
 import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
 import com.example.bank.dto.response.wallet.user.CreateWithdrawOrderResponse;
+import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
 import com.example.bank.service.wallet.user.WithdrawService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,24 +24,27 @@ import org.springframework.web.bind.annotation.*;
 public class WithdrawController {
 
     private final WithdrawService withdrawService;
+    private final LocalizationUtils i18n;
 
     @PostMapping("/orders")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<CreateWithdrawOrderResponse>> createWithdrawOrder(
             @Valid @RequestBody CreateWithdrawOrderRequest request,
-            @AuthenticationPrincipal UserDetailsImpl currentUser
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            HttpServletRequest httpServletRequest
     ) {
 
         CreateWithdrawOrderResponse response =
                 withdrawService.createWithdrawOrder(
                         request,
-                        currentUser.getId()
+                        currentUser.getId(),
+                        httpServletRequest
                 );
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(
                         HttpStatus.CREATED.value(),
-                        MessageKeys.WITHDRAW_ORDER_CREATED,
+                        i18n.getLocalizedMessage(MessageKeys.WITHDRAW_ORDER_CREATED),
                         response
                 ));
     }
@@ -58,7 +64,7 @@ public class WithdrawController {
         return ResponseEntity.ok(
                 ApiResponse.ok(
                         HttpStatus.OK.value(),
-                        MessageKeys.WITHDRAW_OTP_CONFIRMED
+                        i18n.getLocalizedMessage(MessageKeys.WITHDRAW_OTP_CONFIRMED)
                 )
         );
     }
@@ -70,7 +76,6 @@ public class WithdrawController {
             @RequestParam String orderNo,
             @AuthenticationPrincipal UserDetailsImpl currentUser
     ) {
-
         withdrawService.resendWithdrawOtp(
                 currentUser.getId(),
                 orderNo
@@ -79,7 +84,28 @@ public class WithdrawController {
         return ResponseEntity.ok(
                 ApiResponse.ok(
                         HttpStatus.OK.value(),
-                        MessageKeys.OTP_RESENT
+                        i18n.getLocalizedMessage(MessageKeys.OTP_RESENT)
+                )
+        );
+    }
+
+    @GetMapping("/orders-list")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<WithdrawOrderPageResponse>> getWithdrawOrders(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+
+        WithdrawOrderPageResponse response =
+                withdrawService.getUserWithdrawOrders(
+                        currentUser.getId(),
+                        page
+                );
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.WITHDRAW_ORDER_LIST_SUCCESS),
+                        response
                 )
         );
     }

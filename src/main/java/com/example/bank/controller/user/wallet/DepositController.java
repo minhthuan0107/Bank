@@ -3,6 +3,7 @@ package com.example.bank.controller.user.wallet;
 import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
+import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.user.CreateDepositOrderRequest;
 import com.example.bank.dto.request.wallet.user.DepositPreviewRequest;
 import com.example.bank.dto.response.wallet.user.CreateDepositOrderResponse;
@@ -30,6 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DepositController {
     private final DepositService depositService;
+    private final LocalizationUtils i18n;
 
     @GetMapping("/config")
     @PreAuthorize("hasRole('USER')")
@@ -44,7 +46,7 @@ public class DepositController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
-                        MessageKeys.DEPOSIT_CONFIG_FETCHED,
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_CONFIG_FETCHED),
                         response
                 )
         );
@@ -62,7 +64,7 @@ public class DepositController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
-                        MessageKeys.DEPOSIT_PREVIEW_FETCHED,
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_PREVIEW_FETCHED),
                         response
                 )
         );
@@ -84,7 +86,7 @@ public class DepositController {
         return ResponseEntity.ok(
                 ApiResponse.created(
                         HttpStatus.CREATED.value(),
-                        MessageKeys.DEPOSIT_ORDER_CREATED,
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_ORDER_CREATED),
                         response
                 )
         );
@@ -108,7 +110,7 @@ public class DepositController {
         return ResponseEntity.ok(
                 ApiResponse.ok(
                         HttpStatus.OK.value(),
-                        MessageKeys.DEPOSIT_PROOF_UPLOADED_SUCCESS
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_PROOF_UPLOADED_SUCCESS)
                 )
         );
     }
@@ -128,7 +130,7 @@ public class DepositController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
-                        MessageKeys.DEPOSIT_ORDER_LIST_SUCCESS,
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_ORDER_LIST_SUCCESS),
                         data
                 )
         );

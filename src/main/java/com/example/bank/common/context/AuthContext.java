@@ -51,9 +51,6 @@ public class AuthContext {
         return normalizeIp(req.getRemoteAddr());
     }
 
-    public static String nvl(String s) {
-        return s == null ? "" : s;
-    }
 
     // Chuyển IPv6 localhost -> IPv4 cho dễ đọc
     public static String normalizeIp(String ip) {

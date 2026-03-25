@@ -7,7 +7,7 @@ import com.example.bank.dto.request.auth.SigninRequest;
 import com.example.bank.dto.request.auth.SignupRequest;
 import com.example.bank.dto.response.auth.SigninResponse;
 import com.example.bank.dto.response.auth.TokenResponse;
-import com.example.bank.service.auth.impl.AuthServiceImpl;
+import com.example.bank.service.auth.user.impl.AuthServiceImpl;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

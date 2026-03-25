@@ -54,7 +54,8 @@ public class DepositServiceImpl implements DepositService {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_DEPOSIT_PER_HOUR = 10;
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;private static final int MAX_IMAGES = 5;
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final int MAX_IMAGES = 5;
     private static final List<String> ALLOWED_TYPES = List.of(
             "image/jpeg",
             "image/png",
@@ -361,6 +362,7 @@ public class DepositServiceImpl implements DepositService {
         }
     }
 
+    @Override
     public DepositOrderPageResponse getUserDepositOrders(
             Long userId,
             int page

@@ -1,4 +1,4 @@
-package com.example.bank.service.auth.impl;
+package com.example.bank.service.auth.user.impl;
 
 import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.config.security.jwt.JwtTokenUtils;
@@ -21,8 +21,8 @@ import com.example.bank.enums.user.AccountStatus;
 import com.example.bank.repository.auth.AuthSessionRepository;
 import com.example.bank.repository.user.RoleRepository;
 import com.example.bank.repository.user.UserRepository;
-import com.example.bank.service.auth.AuthService;
-import com.example.bank.service.auth.AuthSessionService;
+import com.example.bank.service.auth.user.AuthService;
+import com.example.bank.service.auth.user.AuthSessionService;
 import com.example.bank.service.wallet.admin.WalletService;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
@@ -92,7 +92,8 @@ public class AuthServiceImpl implements AuthService {
             // Ném UnauthorizedException
             throw new UnauthorizedException(
                     messageKey,
-                    HttpStatus.UNAUTHORIZED);
+                    HttpStatus.UNAUTHORIZED
+            );
         }
 
         // Lấy thông tin user
@@ -189,9 +190,8 @@ public class AuthServiceImpl implements AuthService {
                 ctx.getUserAgent(),
                 reason.name()
         );
-        throw new ForbiddenLoginException(
-                i18n.getLocalizedMessage(messageKey)
-        );
+        throw new ForbiddenLoginException(messageKey);
+
     }
 
     // Sinh token response

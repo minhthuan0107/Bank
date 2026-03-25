@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 @Table(name = "withdraw_orders")
@@ -46,8 +47,6 @@ public class WithdrawOrder extends BaseEntity {
     @Column(name = "admin_note")
     private String adminNote;
 
-    @Column(name = "tx_hash", length = 120)
-    private String txHash;
 
     public static WithdrawOrder create(
             Long userId,
@@ -72,21 +71,13 @@ public class WithdrawOrder extends BaseEntity {
         this.status = WithdrawOrderStatus.PENDING_ADMIN;
     }
 
-    public void markSuccess(String txHash) {
+    public void markSuccess() {
         this.status = WithdrawOrderStatus.SUCCESS;
-        this.txHash = txHash;
     }
 
-    public void markFailed(String adminNote) {
+    public void markFailed() {
         this.status = WithdrawOrderStatus.FAILED;
-        this.adminNote = adminNote;
     }
-
-    public void markCancelled(String adminNote) {
-        this.status = WithdrawOrderStatus.CANCELLED;
-        this.adminNote = adminNote;
-    }
-
     public void markExpired() {
         this.status = WithdrawOrderStatus.EXPIRED;
     }

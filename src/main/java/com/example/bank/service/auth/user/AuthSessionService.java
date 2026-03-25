@@ -1,4 +1,4 @@
-package com.example.bank.service.auth;
+package com.example.bank.service.auth.user;
 
 import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.entity.auth.AuthSession;
