@@ -65,7 +65,6 @@ public class DepositServiceImpl implements DepositService {
 
     @Override
     public DepositConfigResponse getDepositConfig(Stablecoin currency , Long userId) {
-
         DepositSettings settings = depositSettingsRepository
                 .findByCurrencyAndStatus(currency, "ACTIVE")
                 .orElseThrow(() ->
@@ -85,7 +84,7 @@ public class DepositServiceImpl implements DepositService {
                 );
 
         return DepositConfigResponse.builder()
-                .balance(wallet.getBalance())
+                .availableBalance(wallet.getAvailableBalance()) // số dư thực tế có thể dùng
                 .feePercent(settings.getFeePercent())
                 .minAmount(settings.getMinAmount())
                 .maxAmount(settings.getMaxAmount())

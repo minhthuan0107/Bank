@@ -65,14 +65,15 @@ public class WithdrawAdminServiceImpl implements WithdrawAdminService {
                             HttpStatus.NOT_FOUND
                     ));
 
-            if (wallet.getBalance().compareTo(order.getAmount()) < 0) {
+            if (wallet.getAvailableBalance().compareTo(order.getAmount()) < 0) {
                 throw new WalletException(
                         MessageKeys.WALLET_INSUFFICIENT_BALANCE,
                         HttpStatus.BAD_REQUEST
                 );
             }
 
-            wallet.setBalance(wallet.getBalance().subtract(order.getAmount()));
+            wallet.setAvailableBalance(wallet.getAvailableBalance().subtract(order.getAmount()));
+            wallet.setTotalBalance(wallet.getTotalBalance().subtract(order.getAmount()));
             walletRepository.save(wallet);
             order.markSuccess();
 

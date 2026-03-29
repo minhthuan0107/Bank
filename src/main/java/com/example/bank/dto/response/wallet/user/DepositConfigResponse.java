@@ -10,8 +10,8 @@ import java.math.BigDecimal;
 @Builder
 public class DepositConfigResponse {
 
-    @JsonProperty("balance")
-    private BigDecimal balance;
+    @JsonProperty("available_balance")
+    private BigDecimal availableBalance;
 
     @JsonProperty("fee_percent")
     private BigDecimal feePercent;
