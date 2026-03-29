@@ -144,11 +144,28 @@ public class MessageKeys {
     public static final String TOO_MANY_REQUESTS = "common.too.many.requests";
 
 
+    // ===== CARD =====
+    public static final String VALIDATION_CARD_BIN_REQUIRED = "validation.card.bin.required";
+    public static final String VALIDATION_CARD_NAME_REQUIRED = "validation.card.name.required";
+    public static final String VALIDATION_CARD_AMOUNT_REQUIRED = "validation.card.amount.required";
+    public static final String VALIDATION_CARD_AMOUNT_MIN = "validation.card.amount.min";
 
+    // ===== HOLDER =====
+    public static final String VALIDATION_FIRST_NAME_REQUIRED = "validation.cardholder.first_name.required";
+    public static final String VALIDATION_LAST_NAME_REQUIRED = "validation.cardholder.last_name.required";
+    public static final String VALIDATION_ADDRESS_REQUIRED = "validation.cardholder.address.required";
+    public static final String VALIDATION_CITY_REQUIRED = "validation.cardholder.city.required";
+    public static final String VALIDATION_COUNTRY_REQUIRED = "validation.cardholder.country.required";
+    public static final String VALIDATION_STATE_REQUIRED = "validation.cardholder.state.required";
+    public static final String VALIDATION_POSTAL_CODE_REQUIRED = "validation.cardholder.postal_code.required";
 
+    public static final String CARD_CREATED = "card.created.success";
 
+    public static final String INSUFFICIENT_BALANCE = "wallet.insufficient_balance";
+    public static final String CARD_LIMIT_EXCEEDED = "card.limit.exceeded";
+    public static final String INVALID_BIN = "card.bin.invalid";
 
-
+    public static final String SLASH_CREATE_CARD_FAILED = "slash.create_card.failed";
 
 
 

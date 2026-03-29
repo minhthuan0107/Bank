@@ -11,6 +11,7 @@ import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
 import com.example.bank.dto.response.wallet.user.CreateWithdrawOrderResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderListResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
+import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import com.example.bank.repository.user.UserRepository;
@@ -187,8 +188,14 @@ public class WithdrawServiceImpl implements WithdrawService {
             }
 
             // ===== 7. Check balance =====
-            BigDecimal available = walletRepository.getAvailableBalance(userId)
-                    .orElse(BigDecimal.ZERO);
+            Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                    .orElseThrow(() -> new WalletException(
+                            MessageKeys.WALLET_NOT_FOUND,
+                            HttpStatus.NOT_FOUND
+                    ));
+
+            BigDecimal available = wallet.getAvailableBalance();
+
             if (request.getAmount().compareTo(available) > 0) {
                 throw new WalletException(
                         MessageKeys.WALLET_INSUFFICIENT_BALANCE,

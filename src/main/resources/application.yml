@@ -47,11 +47,19 @@ otp:
     per-hour: 5
     ip-hourly: 20
 
+wallet:
+  limit: 15
+
 aws:
   region: ${AWS_REGION}
   access-key: ${AWS_ACCESS_KEY}
   secret-key: ${AWS_SECRET_KEY}
 
+slash:
+  api:
+    key: ${SLASH_API_KEY}
+  account:
+    id: ${SLASH_ACCOUNT_ID}
 ses:
   from:
     email: thuanminhle0107@gmail.com

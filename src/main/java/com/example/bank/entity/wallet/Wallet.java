@@ -16,7 +16,6 @@ import java.time.Instant;
 @Getter
 @Setter
 public class Wallet extends BaseEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -29,11 +28,30 @@ public class Wallet extends BaseEntity {
     @Column(name = "currency", nullable = false, length = 10)
     private Stablecoin currency;
 
-    @Column(name = "balance", nullable = false, precision = 19, scale = 4)
-    private BigDecimal balance;
+    /**
+     * Tổng tài sản thật
+     */
+    @Column(name = "total_balance", nullable = false, precision = 19, scale = 4)
+    private BigDecimal totalBalance;
 
+    /**
+     * Số tiền đã allocate vào card
+     */
+    @Column(name = "allocated_balance", nullable = false, precision = 19, scale = 4)
+    private BigDecimal allocatedBalance;
+
+    /**
+     * Số tiền bị đóng băng (withdraw, pending...)
+     */
     @Column(name = "frozen_balance", nullable = false, precision = 19, scale = 4)
     private BigDecimal frozenBalance;
+
+    /**
+     * Số dư có thể dùng
+     * = total - allocated - frozen
+     */
+    @Column(name = "available_balance", nullable = false, precision = 19, scale = 4)
+    private BigDecimal availableBalance;
 
     @Column(name = "status", nullable = false, length = 20)
     private String status;

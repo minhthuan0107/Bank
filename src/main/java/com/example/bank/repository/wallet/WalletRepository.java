@@ -18,25 +18,6 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
 
     Optional<Wallet> findByUserIdAndCurrency(Long userId, Stablecoin currency);
 
-    @Modifying
-    @Query("""
-                UPDATE Wallet w
-                SET w.balance = w.balance - :amount
-                WHERE w.userId = :userId
-                  AND w.balance >= :amount
-            """)
-    int decreaseBalance(
-            @Param("userId") Long userId,
-            @Param("amount") BigDecimal amount
-    );
-
-    @Query(value = """
-                SELECT (balance - frozen_balance)
-                FROM wallets
-                WHERE user_id = :userId
-            """, nativeQuery = true)
-    Optional<BigDecimal> getAvailableBalance(@Param("userId") Long userId);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT w
@@ -46,5 +27,7 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     Optional<Wallet> findByUserIdForUpdate(
             @Param("userId") Long userId
     );
+
+
 
 }

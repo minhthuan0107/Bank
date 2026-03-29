@@ -20,11 +20,17 @@ public class WalletServiceImpl implements WalletService {
         Wallet wallet = Wallet.builder()
                 .userId(userId)
                 .currency(Stablecoin.USDT)
-                .balance(BigDecimal.ZERO)
+                // tổng tài sản
+                .totalBalance(BigDecimal.ZERO)
+                // tiền đã nằm trong card
+                .allocatedBalance(BigDecimal.ZERO)
+                // tiền bị giữ
                 .frozenBalance(BigDecimal.ZERO)
+                // số dư có thể dùng
+                .availableBalance(BigDecimal.ZERO)
                 .status("ACTIVE")
                 .isLocked(false)
-                .version(0)
+                // KHÔNG cần set version nếu DB default = 0
                 .build();
         walletRepository.save(wallet);
     }
