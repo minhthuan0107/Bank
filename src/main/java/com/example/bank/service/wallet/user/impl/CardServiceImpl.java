@@ -8,6 +8,7 @@ import com.example.bank.dto.request.wallet.user.CreateCardRequest;
 import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
 import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.wallet.CardStatus;
+import com.example.bank.event.CardCreatedEvent;
 import com.example.bank.repository.wallet.CardBinRepository;
 import com.example.bank.repository.wallet.CardHolderRepository;
 import com.example.bank.repository.wallet.CardRepository;
@@ -15,6 +16,7 @@ import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.service.redis.LockService;
 import com.example.bank.service.wallet.user.CardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class CardServiceImpl implements CardService {
     private final LockService lockService;
     private final WalletProperties walletProperties;
     private final SlashClient slashClient;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
 
     @Transactional
@@ -107,7 +110,6 @@ public class CardServiceImpl implements CardService {
                     .status(CardStatus.ACTIVE)
                     .bin(request.getBin())
                     .last4(slashCard.getLast4())
-                    .brand(slashCard.getBrand())
                     .expMonth(
                             slashCard.getExpiration() != null
                                     ? slashCard.getExpiration().getMonth()
@@ -122,6 +124,12 @@ public class CardServiceImpl implements CardService {
 
             cardRepository.save(card);
 
+            applicationEventPublisher.publishEvent(
+                    new CardCreatedEvent(
+                            card.getId(),
+                            slashCard.getId()
+                    )
+            );
             // ===== SAVE HOLDER =====
             var h = request.getHolder();
 

@@ -79,8 +79,6 @@ public class Card extends BaseEntity {
     @Column(length = 10)
     private String last4;
 
-    private String brand;
-
     @Column(name = "exp_month")
     private Integer expMonth;
 
