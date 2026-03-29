@@ -29,5 +29,18 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     );
 
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+    UPDATE Wallet w
+    SET w.availableBalance = w.availableBalance - :amount,
+        w.allocatedBalance = w.allocatedBalance + :amount
+    WHERE w.userId = :userId
+      AND w.availableBalance >= :amount
+    """)
+    int decreaseBalance(@Param("userId") Long userId,
+                            @Param("amount") BigDecimal amount);
+
+
+
 
 }

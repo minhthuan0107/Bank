@@ -56,10 +56,15 @@ aws:
   secret-key: ${AWS_SECRET_KEY}
 
 slash:
+  base-url: https://api.slash.com
   api:
     key: ${SLASH_API_KEY}
   account:
     id: ${SLASH_ACCOUNT_ID}
+  endpoints:
+    create-card: /card
+    get-card: /card/{id}
+    update-limit: /card/{id}
 ses:
   from:
     email: thuanminhle0107@gmail.com

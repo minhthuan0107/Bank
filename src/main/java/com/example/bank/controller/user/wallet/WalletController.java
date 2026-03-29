@@ -5,6 +5,8 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.user.CreateCardRequest;
+import com.example.bank.dto.request.wallet.user.TopupCardRequest;
+import com.example.bank.service.wallet.user.CardFundingService;
 import com.example.bank.service.wallet.user.CardService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,11 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -26,6 +24,7 @@ public class WalletController {
 
     private final LocalizationUtils i18n;
     private final CardService cardService;
+    private final CardFundingService cardFundingService;
 
 
     @PostMapping("/create-card")
@@ -41,6 +40,30 @@ public class WalletController {
                 ApiResponse.success(
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.CARD_CREATED),
+                        null
+                )
+        );
+    }
+
+    @PostMapping("/cards/{cardId}/topup")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Void>> topupCard(
+            @PathVariable Long cardId,
+            @Valid @RequestBody TopupCardRequest request,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+
+        cardFundingService.topupCard(
+                currentUser.getId(),
+                cardId,
+                request.getAmount(),
+                request.getReferenceId()
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_TOPUP_SUCCESS),
                         null
                 )
         );
