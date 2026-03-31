@@ -62,13 +62,12 @@ public class WithdrawServiceImpl implements WithdrawService {
 
         AuthContext ctx = AuthContext.from(httpServletRequest);
 
-        // theo user
+        // ===== RATE LIMIT USER =====
         String rlUserKey = RedisKeys.withdrawRateLimitUser(userId);
         Long userCount = redis.opsForValue().increment(rlUserKey);
         if (userCount != null && userCount == 1) {
             redis.expire(rlUserKey, 5, TimeUnit.SECONDS);
         }
-
         if (userCount != null && userCount > 5) {
             throw new WalletException(
                     MessageKeys.TOO_MANY_REQUESTS,
@@ -76,13 +75,12 @@ public class WithdrawServiceImpl implements WithdrawService {
             );
         }
 
-        // theo IP (chống bot multi account)
+        // ===== RATE LIMIT IP =====
         String rlIpKey = RedisKeys.withdrawRateLimitIp(ctx.getIp());
         Long ipCount = redis.opsForValue().increment(rlIpKey);
         if (ipCount != null && ipCount == 1) {
             redis.expire(rlIpKey, 5, TimeUnit.SECONDS);
         }
-
         if (ipCount != null && ipCount > 20) {
             throw new WalletException(
                     MessageKeys.TOO_MANY_REQUESTS,
@@ -90,8 +88,7 @@ public class WithdrawServiceImpl implements WithdrawService {
             );
         }
 
-
-        // Redis lock chống race condition
+        // ===== LOCK =====
         String lockKey = RedisKeys.withdrawLockKey(userId);
         Boolean locked = redis.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
         if (Boolean.FALSE.equals(locked)) {
@@ -102,109 +99,33 @@ public class WithdrawServiceImpl implements WithdrawService {
         }
 
         try {
-            // Daily limit
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
-            Instant start = today.atStartOfDay(ZoneOffset.UTC).toInstant();
-            Instant end = start.plus(1, ChronoUnit.DAYS);
 
-            boolean dailyLimitReached = withdrawRepository.existsByUserIdAndStatusAndCreatedAtBetween(
-                    userId,
-                    WithdrawOrderStatus.SUCCESS,
-                    start,
-                    end
-            );
-            if (dailyLimitReached) {
-                throw new WalletException(
-                        MessageKeys.WITHDRAW_DAILY_LIMIT_REACHED,
-                        HttpStatus.CONFLICT
-                );
-            }
-            // Check active withdraw
-            WithdrawOrder existing = withdrawRepository
-                    .findFirstByUserIdAndStatusIn(
-                            userId,
-                            List.of(WithdrawOrderStatus.PENDING_OTP,
-                                    WithdrawOrderStatus.PENDING_ADMIN)
-                    )
-                    .orElse(null);
-            if (existing != null) {
-                switch (existing.getStatus()) {
-                    case PENDING_ADMIN -> throw new WalletException(
-                            MessageKeys.WITHDRAW_ORDER_ALREADY_PENDING,
-                            HttpStatus.CONFLICT
-                    );
-                    case PENDING_OTP -> {
-                        boolean otpStillValid = Boolean.TRUE.equals(
-                                redis.hasKey(RedisKeys.withdrawOtpValueKey(existing.getOrderNo()))
-                        );
-                        if (otpStillValid) {
-                            // OTP còn hạn → resume, trả về order cũ
-                            return CreateWithdrawOrderResponse.builder()
-                                    .orderNo(existing.getOrderNo())
-                                    .amount(existing.getAmount())
-                                    .status(existing.getStatus())
-                                    .build();
-                        }
-                        // OTP hết hạn → expire order cũ, cho tạo mới
-                        existing.setStatus(WithdrawOrderStatus.EXPIRED);
-                        withdrawRepository.save(existing);
-                    }
-                }
-            }
-            // ===== 4. Get email =====
-            String email = userRepository.findEmailByUserId(userId)
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.USER_NOT_FOUND,
-                            HttpStatus.NOT_FOUND
-                    ));
-
-            // ===== 5. Hourly OTP limit =====
-            String hourKey = RedisKeys.withdrawOtpEmailHourlyKey(email);
-            Long emailCnt = redis.opsForValue().increment(hourKey);
-            if (emailCnt != null && emailCnt == 1) {
-                redis.expire(hourKey, 3600, TimeUnit.SECONDS);
-            }
-            if (emailCnt != null && emailCnt > otpProperties.getLimit().getPerHour()) {
-                Long remain = redis.getExpire(hourKey, TimeUnit.SECONDS);
-                throw new OtpException(
-                        MessageKeys.RATE_LIMIT_HOURLY,
-                        remain != null ? remain.intValue() : null
-                );
-            }
-
-            // ===== 6. OTP cooldown =====
-            String cdKey = RedisKeys.withdrawOtpCooldownKey(email);
-            Boolean cdLocked = redis.opsForValue().setIfAbsent(
-                    cdKey, "1",
-                    otpProperties.getCooldownSeconds(),
-                    TimeUnit.SECONDS
-            );
-            if (Boolean.FALSE.equals(cdLocked)) {
-                Long remain = redis.getExpire(cdKey, TimeUnit.SECONDS);
-                throw new OtpException(
-                        MessageKeys.OTP_COOLDOWN_ACTIVE,
-                        remain != null ? remain.intValue() : null
-                );
-            }
-
-            // ===== 7. Check balance =====
+            // ===== CHECK BALANCE =====
             Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                     .orElseThrow(() -> new WalletException(
                             MessageKeys.WALLET_NOT_FOUND,
                             HttpStatus.NOT_FOUND
                     ));
 
-            BigDecimal available = wallet.getAvailableBalance();
-
-            if (request.getAmount().compareTo(available) > 0) {
+            if (request.getAmount().compareTo(wallet.getAvailableBalance()) > 0) {
                 throw new WalletException(
                         MessageKeys.WALLET_INSUFFICIENT_BALANCE,
                         HttpStatus.BAD_REQUEST
                 );
             }
 
-            // ===== 8. Create order =====
+            // ===== TRỪ TIỀN NGAY (deduct-first model) =====
+            wallet.setAvailableBalance(
+                    wallet.getAvailableBalance().subtract(request.getAmount())
+            );
+            wallet.setTotalBalance(
+                    wallet.getTotalBalance().subtract(request.getAmount())
+            );
+            walletRepository.save(wallet);
+
+            // ===== CREATE ORDER =====
             String orderNo = generateOrderNo();
+
             WithdrawOrder order = WithdrawOrder.create(
                     userId,
                     orderNo,
@@ -213,9 +134,25 @@ public class WithdrawServiceImpl implements WithdrawService {
                     request.getToAddress(),
                     request.getAmount()
             );
-            withdrawRepository.save(order);
 
-            // ===== 9. Generate & send OTP =====
+            try {
+                withdrawRepository.save(order);
+            } catch (DataIntegrityViolationException ex) {
+                log.warn("WITHDRAW DUPLICATE userId={}", userId);
+                throw new WalletException(
+                        MessageKeys.WITHDRAW_ORDER_ALREADY_PENDING,
+                        HttpStatus.CONFLICT
+                );
+            }
+
+            // ===== LẤY EMAIL =====
+            String email = userRepository.findEmailByUserId(userId)
+                    .orElseThrow(() -> new WalletException(
+                            MessageKeys.USER_NOT_FOUND,
+                            HttpStatus.NOT_FOUND
+                    ));
+
+            // ===== OTP =====
             String otp = generateOtp();
             redis.opsForValue().set(
                     RedisKeys.withdrawOtpValueKey(orderNo),
@@ -223,6 +160,7 @@ public class WithdrawServiceImpl implements WithdrawService {
                     otpProperties.getTtlSeconds(),
                     TimeUnit.SECONDS
             );
+
             mailService.sendOtp(email, otp);
 
             return CreateWithdrawOrderResponse.builder()
@@ -231,16 +169,10 @@ public class WithdrawServiceImpl implements WithdrawService {
                     .status(order.getStatus())
                     .build();
 
-        } catch (DataIntegrityViolationException ex) {
-            throw new WalletException(
-                    MessageKeys.WITHDRAW_ORDER_ALREADY_PENDING,
-                    HttpStatus.CONFLICT
-            );
         } finally {
             redis.delete(lockKey);
         }
     }
-
 
     @Override
     @Transactional
