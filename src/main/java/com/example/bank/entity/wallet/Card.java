@@ -66,6 +66,9 @@ public class Card extends BaseEntity {
     @Column(length = 10)
     private String currency;
 
+    @Column(name = "note", length = 255)
+    private String note;
+
     // ===== CARD INFO (SAFE) =====
     /**
      * BIN (6 số đầu)

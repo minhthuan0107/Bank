@@ -8,4 +8,10 @@ public interface CardFundingService {
                    BigDecimal amount,
                    String referenceId
     );
+
+    void withdrawCard (Long userId,
+                    Long cardId,
+                    BigDecimal amount,
+                    String referenceId
+    );
 }

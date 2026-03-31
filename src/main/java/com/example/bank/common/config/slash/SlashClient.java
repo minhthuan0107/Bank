@@ -127,7 +127,7 @@ public class SlashClient {
     }
 
     // ===== INCREASE LIMIT =====
-    public void increaseLimit(String cardId, BigDecimal amount) {
+    public void setLimit(String cardId, BigDecimal amount) {
 
         String url = props.getBaseUrl()
                 + props.getEndpoints().getUpdateLimit()

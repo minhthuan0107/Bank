@@ -167,7 +167,7 @@ public class MessageKeys {
 
     public static final String SLASH_CREATE_CARD_FAILED = "slash.create_card.failed";
     public static final String SLASH_GET_CARD_FAILED = "slash.card.get.failed";
-
+    public static final String CARD_WITHDRAW_SUCCESS="card.withdraw.success";
     public static final String CARD_TOPUP_SUCCESS = "card.topup.success";
 
     public static final String CARD_NOT_FOUND = "card.not.found";
@@ -175,6 +175,16 @@ public class MessageKeys {
     public static final String CARD_TOPUP_IN_PROGRESS = "card.topup.in.progress";
 
     public static final String SLASH_UPDATE_LIMIT_FAILED = "slash.card.update.limit.failed";
+    public static final String CARD_WITHDRAW_FAILED = "card.withdraw.failed";
+    public static final String CARD_WITHDRAW_IN_PROGRESS = "card.withdraw.in_progress";
+    public static final String WALLET_UPDATE_FAILED = "wallet.update.failed";
+    public static final String INSUFFICIENT_CARD_BALANCE = "card.balance.insufficient";
+    public static final String CARD_UPDATE_FAILED ="card.update.failed";
+    public static final String VALIDATION_CARD_NOTE_MAX_LENGTH="validation.card.note.max_length";
+    public static final String CARD_LIST_SUCCESS = "card.list.success";
+
+
+
 
 
 

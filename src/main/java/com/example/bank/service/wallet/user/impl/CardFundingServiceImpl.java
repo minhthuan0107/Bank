@@ -34,6 +34,7 @@ public class CardFundingServiceImpl implements CardFundingService {
     private final SlashClient slashClient;
 
     @Transactional
+    @Override
     public void topupCard(Long userId,
                           Long cardId,
                           BigDecimal amount,
@@ -43,7 +44,6 @@ public class CardFundingServiceImpl implements CardFundingService {
         if (referenceId != null) {
             Optional<CardFundingTransaction> existing =
                     txnRepo.findByReferenceId(referenceId);
-
             if (existing.isPresent()) {
                 log.warn("TOPUP DUPLICATE ref={}", referenceId);
                 return;
@@ -92,7 +92,7 @@ public class CardFundingServiceImpl implements CardFundingService {
                     ));
             BigDecimal newLimit = card.getAllocatedAmount().add(amount);
             // ===== CALL SLASH =====
-            slashClient.increaseLimit(card.getSlashCardId(), newLimit);
+            slashClient.setLimit(card.getSlashCardId(), newLimit);
 
             // ===== UPDATE WALLET =====
             int walletUpdated = walletRepository.decreaseBalance(userId, amount);
@@ -129,6 +129,108 @@ public class CardFundingServiceImpl implements CardFundingService {
 
             throw new WalletException(
                     MessageKeys.TOPUP_FAILED,
+                    HttpStatus.BAD_GATEWAY
+            );
+        }
+    }
+
+    @Transactional
+    @Override
+    public void withdrawCard(Long userId,
+                             Long cardId,
+                             BigDecimal amount,
+                             String referenceId) {
+
+        // ===== IDEMPOTENCY =====
+        if (referenceId != null) {
+            Optional<CardFundingTransaction> existing =
+                    txnRepo.findByReferenceId(referenceId);
+            if (existing.isPresent()) {
+                log.warn("WITHDRAW DUPLICATE ref={}", referenceId);
+                return;
+            }
+        }
+
+        // ===== CREATE TXN (PENDING) =====
+        CardFundingTransaction txn = CardFundingTransaction.builder()
+                .cardId(cardId)
+                .userId(userId)
+                .amount(amount)
+                .type(CardTxnType.WITHDRAW)
+                .status(CardTxnStatus.PENDING)
+                .referenceId(referenceId)
+                .build();
+
+        try {
+            txnRepo.save(txn); // rely UNIQUE constraint
+        } catch (DataIntegrityViolationException e) {
+            throw new WalletException(
+                    MessageKeys.CARD_WITHDRAW_IN_PROGRESS,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        try {
+            // ===== LOCK WALLET =====
+            Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                    .orElseThrow(() -> new WalletException(
+                            MessageKeys.WALLET_NOT_FOUND,
+                            HttpStatus.NOT_FOUND
+                    ));
+
+            // ===== GET CARD (ownership check) =====
+            Card card = cardRepository.findByIdAndUserId(cardId, userId)
+                    .orElseThrow(() -> new WalletException(
+                            MessageKeys.CARD_NOT_FOUND,
+                            HttpStatus.NOT_FOUND
+                    ));
+
+            // ===== VALIDATE REMAINING =====
+            BigDecimal remaining = card.getRemainingAmount();
+            if (remaining.compareTo(amount) < 0) {
+                throw new WalletException(
+                        MessageKeys.INSUFFICIENT_CARD_BALANCE,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            // ===== CALCULATE NEW LIMIT =====
+            BigDecimal newLimit = card.getAllocatedAmount().subtract(amount);
+            // ===== CALL SLASH =====
+            slashClient.setLimit(card.getSlashCardId(), newLimit);
+
+            // ===== UPDATE CARD =====
+            int cardUpdated = cardRepository.decreaseLimit(cardId, amount);
+            if (cardUpdated == 0) {
+                throw new WalletException(
+                        MessageKeys.CARD_UPDATE_FAILED,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            // ===== UPDATE WALLET =====
+            int walletUpdated = walletRepository.increaseBalance(userId, amount);
+            if (walletUpdated == 0) {
+                throw new WalletException(
+                        MessageKeys.WALLET_UPDATE_FAILED,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            // ===== SUCCESS =====
+            txn.setStatus(CardTxnStatus.SUCCESS);
+            txnRepo.save(txn);
+            log.info("WITHDRAW SUCCESS userId={} cardId={} amount={}",
+                    userId, cardId, amount);
+
+        } catch (Exception e) {
+            log.error("WITHDRAW FAIL userId={} cardId={} err={}",
+                    userId, cardId, e.getMessage());
+            txn.setStatus(CardTxnStatus.FAILED);
+            txnRepo.save(txn);
+
+            throw new WalletException(
+                    MessageKeys.CARD_WITHDRAW_FAILED,
                     HttpStatus.BAD_GATEWAY
             );
         }
