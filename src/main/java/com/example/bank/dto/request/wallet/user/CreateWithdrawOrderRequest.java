@@ -31,7 +31,7 @@ public class CreateWithdrawOrderRequest {
     private String toAddress;
 
     @NotNull(message = "{" + MessageKeys.VALIDATION_AMOUNT_NOT_NULL + "}")
-    @DecimalMin(value = "500", message = "{" + MessageKeys.VALIDATION_WITHDRAW_AMOUNT_MIN + "}")
+    @DecimalMin(value = "200", message = "{" + MessageKeys.VALIDATION_WITHDRAW_AMOUNT_MIN + "}")
     @JsonProperty("amount")
     private BigDecimal amount;
 }

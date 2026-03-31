@@ -183,6 +183,10 @@ public class MessageKeys {
     public static final String VALIDATION_CARD_NOTE_MAX_LENGTH="validation.card.note.max_length";
     public static final String CARD_LIST_SUCCESS = "card.list.success";
 
+    public static final String VALIDATION_ORDER_NO_REQUIRED = "validation.order_no.required";
+    public static final String VALIDATION_ORDER_NO_MAX_LENGTH = "validation.order_no.max_length";
+    public static final String VALIDATION_OTP_INVALID = "validation.otp.invalid";
+
 
 
 
