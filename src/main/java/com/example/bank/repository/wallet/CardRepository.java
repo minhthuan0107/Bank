@@ -2,6 +2,8 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.Card;
 import io.lettuce.core.dynamic.annotation.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -32,13 +34,24 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
-        UPDATE Card c
-        SET c.allocatedAmount = c.allocatedAmount + :amount,
-            c.remainingAmount = c.remainingAmount + :amount
-        WHERE c.id = :cardId
-    """)
+                UPDATE Card c
+                SET c.allocatedAmount = c.allocatedAmount + :amount,
+                    c.remainingAmount = c.remainingAmount + :amount
+                WHERE c.id = :cardId
+            """)
     int increaseLimit(@Param("cardId") Long cardId,
                       @Param("amount") BigDecimal amount);
 
+    @Modifying
+    @Query("""
+            UPDATE Card c
+            SET c.allocatedAmount = c.allocatedAmount - :amount,
+                c.remainingAmount = c.remainingAmount - :amount
+            WHERE c.id = :cardId
+            """)
+    int decreaseLimit(Long cardId, BigDecimal amount);
+
     Optional<Card> findByIdAndUserId(Long id, Long userId);
+
+    Page<Card> findByUserId(Long userId, Pageable pageable);
 }

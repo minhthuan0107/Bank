@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,6 +24,9 @@ public class CreateCardRequest {
     @NotNull(message = "{" + MessageKeys.VALIDATION_CARD_AMOUNT_REQUIRED + "}")
     @DecimalMin(value = "0.01", message = "{" + MessageKeys.VALIDATION_CARD_AMOUNT_MIN + "}")
     private BigDecimal amount;
+
+    @Size(max = 255, message = "{" + MessageKeys.VALIDATION_CARD_NOTE_MAX_LENGTH + "}")
+    private String note;
 
     @NotNull
     @Valid

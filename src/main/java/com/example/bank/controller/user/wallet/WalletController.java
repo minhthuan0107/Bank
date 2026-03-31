@@ -6,6 +6,8 @@ import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.user.CreateCardRequest;
 import com.example.bank.dto.request.wallet.user.TopupCardRequest;
+import com.example.bank.dto.request.wallet.user.WithDrawCardRequest;
+import com.example.bank.dto.response.wallet.user.CardPageResponse;
 import com.example.bank.service.wallet.user.CardFundingService;
 import com.example.bank.service.wallet.user.CardService;
 import jakarta.validation.Valid;
@@ -65,6 +67,50 @@ public class WalletController {
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.CARD_TOPUP_SUCCESS),
                         null
+                )
+        );
+    }
+
+    @PostMapping("/cards/{cardId}/withdraw")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Void>> withDrawCard(
+            @PathVariable Long cardId,
+            @Valid @RequestBody WithDrawCardRequest request,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+
+        cardFundingService.withdrawCard(
+                currentUser.getId(),
+                cardId,
+                request.getAmount(),
+                request.getReferenceId()
+        );
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_WITHDRAW_SUCCESS),
+                        null
+                )
+        );
+    }
+
+    @GetMapping("/cards")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<CardPageResponse>> getCards(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        CardPageResponse response =
+                cardService.getUserCards(
+                        currentUser.getId(),
+                        page
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_LIST_SUCCESS),
+                        response
                 )
         );
     }
