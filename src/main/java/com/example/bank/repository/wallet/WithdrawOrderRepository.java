@@ -69,5 +69,9 @@ public interface WithdrawOrderRepository extends JpaRepository<WithdrawOrder, Lo
             Pageable pageable
     );
 
+    Optional<WithdrawOrder> findByUserIdAndStatus(
+            Long userId,
+            WithdrawOrderStatus status
+    );
 
 }

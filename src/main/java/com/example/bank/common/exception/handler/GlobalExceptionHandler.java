@@ -285,7 +285,8 @@ public class GlobalExceptionHandler {
                 ex.getStatus()).body(Map.of(
                 "status", ex.getStatus().value(),
                 "type", ex.getStatus().name(),
-                "message", localized
+                "message", localized,
+                "data", ex.getData()
         ));
     }
 

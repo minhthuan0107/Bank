@@ -187,6 +187,10 @@ public class MessageKeys {
     public static final String VALIDATION_ORDER_NO_MAX_LENGTH = "validation.order_no.max_length";
     public static final String VALIDATION_OTP_INVALID = "validation.otp.invalid";
 
+    public static final String WITHDRAW_OTP_STILL_VALID = "withdraw.otp.still.valid";
+    public static final String BALANCE_FETCH_SUCCESS = "balance.fetch.success";
+
+
 
 
 

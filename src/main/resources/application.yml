@@ -41,7 +41,7 @@ jwt:
   clock-skew: 30s
 
 otp:
-  ttl-seconds: 300
+  ttl-seconds: 180
   cooldown-seconds: 60
   limit:
     per-hour: 5
