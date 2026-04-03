@@ -6,6 +6,7 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.CreateCardRequest;
 import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
+import com.example.bank.dto.response.wallet.user.BalanceResponse;
 import com.example.bank.dto.response.wallet.user.CardListResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
 import com.example.bank.entity.wallet.*;
@@ -205,6 +206,28 @@ public class CardServiceImpl implements CardService {
         if (bin.startsWith("6")) return CardBrand.DISCOVER;
         if (bin.startsWith("35")) return CardBrand.JCB;
         return CardBrand.UNKNOWN;
+    }
+
+    @Transactional(readOnly = true)
+    public BalanceResponse getUserBalance(Long userId) {
+        // ===== WALLET =====
+        BigDecimal walletBalance = walletRepository
+                .findAvailableBalanceByUserId(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        // ===== CARD BALANCE (sum remaining) =====
+        BigDecimal cardBalance = cardRepository.sumRemainingAmountByUserId(userId);
+        if (cardBalance == null) {
+            cardBalance = BigDecimal.ZERO;
+        }
+
+        return BalanceResponse.builder()
+                .walletBalance(walletBalance)
+                .cardBalance(cardBalance)
+                .build();
     }
 }
 

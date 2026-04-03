@@ -7,6 +7,7 @@ import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.user.CreateCardRequest;
 import com.example.bank.dto.request.wallet.user.TopupCardRequest;
 import com.example.bank.dto.request.wallet.user.WithDrawCardRequest;
+import com.example.bank.dto.response.wallet.user.BalanceResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
 import com.example.bank.service.wallet.user.CardFundingService;
 import com.example.bank.service.wallet.user.CardService;
@@ -110,6 +111,24 @@ public class WalletController {
                 ApiResponse.success(
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.CARD_LIST_SUCCESS),
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/balance")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<BalanceResponse>> getBalance(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+
+        BalanceResponse response =
+                cardService.getUserBalance(currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.BALANCE_FETCH_SUCCESS),
                         response
                 )
         );

@@ -1,5 +1,5 @@
 package com.example.bank.service.wallet.admin;
 
-public interface WalletService {
+public interface WalletAdminService {
     void createWallet(Long userId);
 }

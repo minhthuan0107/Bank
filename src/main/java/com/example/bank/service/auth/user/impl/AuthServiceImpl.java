@@ -23,7 +23,7 @@ import com.example.bank.repository.user.RoleRepository;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.service.auth.user.AuthService;
 import com.example.bank.service.auth.user.AuthSessionService;
-import com.example.bank.service.wallet.admin.WalletService;
+import com.example.bank.service.wallet.admin.WalletAdminService;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,7 +54,7 @@ public class AuthServiceImpl implements AuthService {
     private Role defaultUserRole;
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redisTemplate;
-    private final WalletService walletService;
+    private final WalletAdminService walletService;
     private final AuthSessionRepository authSessionRepository;
     @PostConstruct
     public void init() {

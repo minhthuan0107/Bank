@@ -3,7 +3,7 @@ package com.example.bank.service.wallet.admin.impl;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.repository.wallet.WalletRepository;
-import com.example.bank.service.wallet.admin.WalletService;
+import com.example.bank.service.wallet.admin.WalletAdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
-public class WalletServiceImpl implements WalletService {
+public class WalletAdminServiceImpl implements WalletAdminService {
 
     private final WalletRepository walletRepository;
 

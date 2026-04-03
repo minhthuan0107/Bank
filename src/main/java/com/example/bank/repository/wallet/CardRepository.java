@@ -54,4 +54,12 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     Optional<Card> findByIdAndUserId(Long id, Long userId);
 
     Page<Card> findByUserId(Long userId, Pageable pageable);
+
+    @Query("""
+    SELECT COALESCE(SUM(c.remainingAmount), 0)
+    FROM Card c
+    WHERE c.userId = :userId
+      AND c.status = 'ACTIVE'
+    """)
+    BigDecimal sumRemainingAmountByUserId(@Param("userId") Long userId);
 }
