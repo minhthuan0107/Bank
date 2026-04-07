@@ -97,12 +97,12 @@ public class WalletController {
 
     @GetMapping("/cards")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<CardPageResponse>> getCards(
+    public ResponseEntity<ApiResponse<CardPageResponse>> getCardDashboard(
             @AuthenticationPrincipal UserDetailsImpl currentUser,
             @RequestParam(defaultValue = "0") int page
     ) {
         CardPageResponse response =
-                cardService.getUserCards(
+                cardService.getDashboard(
                         currentUser.getId(),
                         page
                 );
@@ -133,6 +133,8 @@ public class WalletController {
                 )
         );
     }
+
+
 
 
 }

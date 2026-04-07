@@ -7,6 +7,7 @@ import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.CreateCardRequest;
 import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
 import com.example.bank.dto.response.wallet.user.BalanceResponse;
+import com.example.bank.dto.response.wallet.user.CardDashboardResponse;
 import com.example.bank.dto.response.wallet.user.CardListResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
 import com.example.bank.entity.wallet.*;
@@ -15,6 +16,7 @@ import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.enums.wallet.CardTransactionStatus;
 import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.event.CardCreatedEvent;
+import com.example.bank.repository.projection.CardDashboardProjection;
 import com.example.bank.repository.wallet.*;
 import com.example.bank.service.redis.LockService;
 import com.example.bank.service.wallet.user.CardService;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -160,7 +163,7 @@ public class CardServiceImpl implements CardService {
         }
     }
 
-    public CardPageResponse getUserCards(Long userId, int page) {
+    public CardPageResponse getDashboard(Long userId, int page) {
         Pageable pageable = PageRequest.of(
                 page,
                 DEFAULT_PAGE_SIZE,
@@ -332,6 +335,97 @@ public class CardServiceImpl implements CardService {
 
         walletRepository.save(wallet);
         cardRepository.save(card);
+    }
+
+    public CardPageResponse getUserCards(
+            Long userId,
+            String cardNumber,
+            String cardName,
+            CardStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        // normalize input
+        cardNumber = normalize(cardNumber);
+        cardName = normalize(cardName);
+
+        // validate time
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new WalletException(
+                    MessageKeys.INVALID_TIME_RANGE,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+        // paging
+        page = Math.max(page, 0);
+        Pageable pageable = PageRequest.of(
+                page,
+                DEFAULT_PAGE_SIZE,
+                Sort.by(Sort.Direction.DESC, "id")
+        );
+
+        // query (search thay vì findByUserId)
+        Page<Card> cardPage = cardRepository.searchEntity(
+                userId,
+                cardNumber,
+                cardName,
+                status,
+                fromTime,
+                toTime,
+                pageable
+        );
+
+        // mapping (giữ style của bạn)
+        List<CardListResponse> items = cardPage.getContent()
+                .stream()
+                .map(c -> CardListResponse.builder()
+                        .id(c.getId())
+                        .maskedCard(maskCard(c.getBin(), c.getLast4()))
+                        .brand(detectBrand(c.getBin()))
+                        .name(c.getName())
+                        .note(c.getNote())
+                        .currency(c.getCurrency())
+                        .status(c.getStatus())
+                        .remainingAmount(c.getRemainingAmount())
+                        .createdAt(c.getCreatedAt())
+                        .build()
+                )
+                .toList();
+
+        // build response (giữ nguyên format bạn đang dùng)
+        return CardPageResponse.builder()
+                .items(items)
+                .page(page)
+                .size(DEFAULT_PAGE_SIZE)
+                .totalSize(cardPage.getTotalElements())
+                .hasNext(cardPage.hasNext())
+                .build();
+    }
+    private String normalize(String val) {
+        return (val == null || val.isBlank()) ? null : val.trim();
+    }
+
+    public CardDashboardResponse getCardDashboard(Long userId) {
+
+        CardDashboardProjection p = cardRepository.getDashboard(userId);
+        return CardDashboardResponse.builder()
+                .totalBalance(
+                        p != null && p.getTotalBalance() != null
+                                ? p.getTotalBalance()
+                                : BigDecimal.ZERO
+                )
+                .activeCount(
+                        p != null && p.getActiveCount() != null
+                                ? p.getActiveCount()
+                                : 0L
+                )
+                .blockedCount(
+                        p != null && p.getBlockedCount() != null
+                                ? p.getBlockedCount()
+                                : 0L
+                )
+                .build();
     }
 
 

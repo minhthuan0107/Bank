@@ -4,16 +4,18 @@ import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
+import com.example.bank.dto.response.wallet.user.CardDashboardResponse;
+import com.example.bank.dto.response.wallet.user.CardPageResponse;
+import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.service.wallet.user.CardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("${api.prefix}/card")
@@ -55,6 +57,56 @@ public class CardController {
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.CARD_UNLOCK_SUCCESS),
                         null
+                )
+        );
+    }
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<CardPageResponse>> getCards(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+
+            @RequestParam(required = false) String cardNumber,
+            @RequestParam(required = false) String cardName,
+            @RequestParam(required = false) CardStatus status,
+
+            @RequestParam(required = false) Instant fromTime,
+            @RequestParam(required = false) Instant toTime,
+
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        CardPageResponse response =
+                cardService.getUserCards(
+                        currentUser.getId(),
+                        cardNumber,
+                        cardName,
+                        status,
+                        fromTime,
+                        toTime,
+                        page
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_LIST_SUCCESS),
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<CardDashboardResponse>> getCardDashboard(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        CardDashboardResponse response =
+                cardService.getCardDashboard(currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_DASHBOARD_SUCCESS),
+                        response
                 )
         );
     }
