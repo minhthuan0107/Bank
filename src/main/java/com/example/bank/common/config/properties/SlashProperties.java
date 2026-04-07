@@ -30,5 +30,6 @@ public class SlashProperties {
         private String createCard;
         private String getCard;
         private String updateLimit;
+        private String updateCard;
     }
 }

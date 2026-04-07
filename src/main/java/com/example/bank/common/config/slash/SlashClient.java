@@ -7,14 +7,17 @@ import com.example.bank.dto.request.wallet.s3.SlashCreateCardRequest;
 import com.example.bank.dto.request.wallet.s3.SlashUpdateLimitRequest;
 import com.example.bank.dto.response.slash.SlashCardDetailResponse;
 import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -184,11 +187,85 @@ public class SlashClient {
         }
     }
 
+
+
+    public void lockCard(String cardId) {
+        updateCardStatus(cardId, CardStatus.PAUSED);
+    }
+
+    public void unblockCard(String cardId) {
+        updateCardStatus(cardId, CardStatus.ACTIVE);
+    }
+
+// ===== PRIVATE =====
+
+    /**
+     * Gọi PATCH /card/{cardId} để cập nhật status thẻ.
+     * Slash API không có endpoint /freeze hay /unfreeze riêng.
+     * Ref: https://docs.slash.com/api-reference/card-patch
+     */
+    private void updateCardStatus(String cardId, CardStatus status) {
+        String url = buildUrl(props.getEndpoints().getUpdateCard(), cardId);
+        Map<String, String> body = Map.of("status", status.getValue());
+        webClient.patch()
+                .uri(url)
+                .headers(h -> h.addAll(buildHeaders()))
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(
+                        HttpStatusCode::isError,
+                        response -> response.bodyToMono(String.class)
+                                .defaultIfEmpty("[empty body]")
+                                .flatMap(responseBody -> {
+                                    log.error(
+                                            "[SLASH][UPDATE-STATUS] Failed — cardId={} status={} body={}",
+                                            cardId, response.statusCode(), responseBody
+                                    );
+                                    return Mono.error(new WalletException(
+                                            MessageKeys.SLASH_UPDATE_CARD_FAILED,
+                                            HttpStatus.BAD_GATEWAY
+                                    ));
+                                })
+                )
+                .bodyToMono(Void.class)
+                .doOnSuccess(v -> log.info(
+                        "[SLASH][UPDATE-STATUS] Success — cardId={} newStatus={}", cardId, status
+                ))
+                .doOnError(e -> !(e instanceof WalletException), e ->
+                        log.error(
+                                "[SLASH][UPDATE-STATUS] Unexpected error — cardId={} newStatus={}",
+                                cardId, status, e
+                        )
+                )
+                .onErrorMap(e -> !(e instanceof WalletException), e ->
+                        new WalletException(MessageKeys.SLASH_UPDATE_CARD_FAILED, HttpStatus.BAD_GATEWAY)
+                )
+                .block();
+    }
+
+    private String buildUrl(String endpointTemplate, String cardId) {
+        return UriComponentsBuilder
+                .fromHttpUrl(props.getBaseUrl() + endpointTemplate)
+                .buildAndExpand(cardId)
+                .toUriString();
+    }
+
     // ===== COMMON HEADERS =====
     private HttpHeaders buildHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-API-Key", props.getApi().getKey());
         return headers;
+    }
+
+    // ===== ENUMS =====
+    @Getter
+    @RequiredArgsConstructor
+    private enum CardStatus {
+        ACTIVE("active"),
+        PAUSED("paused"),
+        INACTIVE("inactive"),
+        CLOSED("closed");
+        private final String value;
     }
 }

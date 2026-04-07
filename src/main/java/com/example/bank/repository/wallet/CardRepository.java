@@ -2,9 +2,11 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.Card;
 import io.lettuce.core.dynamic.annotation.Param;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -62,4 +64,17 @@ public interface CardRepository extends JpaRepository<Card, Long> {
       AND c.status = 'ACTIVE'
     """)
     BigDecimal sumRemainingAmountByUserId(@Param("userId") Long userId);
+
+    // ===== LẤY CARD + LOCK (QUAN TRỌNG) =====
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT c
+        FROM Card c
+        WHERE c.id = :cardId
+        AND c.userId = :userId
+    """)
+    Optional<Card> findByIdAndUserIdForUpdate(
+            @Param("cardId") Long cardId,
+            @Param("userId") Long userId
+    );
 }
