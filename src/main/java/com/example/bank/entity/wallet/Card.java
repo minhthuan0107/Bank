@@ -63,6 +63,9 @@ public class Card extends BaseEntity {
     @Column(name = "remaining_amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal remainingAmount;
 
+    @Column(name = "locked_amount", precision = 19, scale = 4)
+    private BigDecimal lockedAmount;
+
     @Column(length = 10)
     private String currency;
 

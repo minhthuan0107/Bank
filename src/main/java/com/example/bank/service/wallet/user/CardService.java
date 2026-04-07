@@ -10,4 +10,8 @@ public interface CardService {
     CardPageResponse getUserCards(Long userId, int page);
 
     BalanceResponse getUserBalance(Long userId) ;
+
+    void lockCard(Long userId, Long cardId);
+
+    void unlockCard(Long userId, Long cardId);
 }

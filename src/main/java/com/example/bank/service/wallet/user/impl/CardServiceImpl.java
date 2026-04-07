@@ -12,11 +12,10 @@ import com.example.bank.dto.response.wallet.user.CardPageResponse;
 import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.wallet.CardBrand;
 import com.example.bank.enums.wallet.CardStatus;
+import com.example.bank.enums.wallet.CardTransactionStatus;
+import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.event.CardCreatedEvent;
-import com.example.bank.repository.wallet.CardBinRepository;
-import com.example.bank.repository.wallet.CardHolderRepository;
-import com.example.bank.repository.wallet.CardRepository;
-import com.example.bank.repository.wallet.WalletRepository;
+import com.example.bank.repository.wallet.*;
 import com.example.bank.service.redis.LockService;
 import com.example.bank.service.wallet.user.CardService;
 import lombok.RequiredArgsConstructor;
@@ -43,14 +42,13 @@ public class CardServiceImpl implements CardService {
     private final WalletProperties walletProperties;
     private final SlashClient slashClient;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final CardFundingTransactionRepository transactionRepository;
     private static final int DEFAULT_PAGE_SIZE = 10;
 
 
     @Transactional
     public void createCard(CreateCardRequest request, Long userId) {
-
         String lockKey = "lock:create_card:" + userId;
-
         if (!lockService.tryLock(lockKey)) {
             throw new WalletException(
                     MessageKeys.TOO_MANY_REQUESTS,
@@ -229,5 +227,113 @@ public class CardServiceImpl implements CardService {
                 .cardBalance(cardBalance)
                 .build();
     }
+
+
+    @Override
+    @Transactional
+    public void lockCard(Long userId, Long cardId) {
+
+        Card card = cardRepository.findByIdAndUserIdForUpdate(cardId, userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.CARD_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        if (card.getStatus() == CardStatus.BLOCKED) {
+            throw new WalletException(
+                    MessageKeys.CARD_ALREADY_BLOCKED,
+                    HttpStatus.CONFLICT
+            );
+        }
+
+        // Tránh lock khi đang có giao dịch
+        boolean hasPending = transactionRepository.existsByCardIdAndStatus(
+                cardId,
+                CardTxnStatus.PENDING
+        );
+        if (hasPending) {
+            throw new WalletException(
+                    MessageKeys.CARD_HAS_PENDING_TRANSACTION,
+                    HttpStatus.CONFLICT
+            );
+        }
+
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        BigDecimal amount = card.getRemainingAmount();
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new WalletException(
+                    MessageKeys.INVALID_BALANCE,
+                    HttpStatus.CONFLICT
+            );
+        }
+
+        // 1. Block card bên Slash trước
+        slashClient.lockCard(card.getSlashCardId());
+
+        // 2. Update local
+        wallet.setFrozenBalance(wallet.getFrozenBalance().add(amount));
+        wallet.setAllocatedBalance(wallet.getAllocatedBalance().subtract(amount));
+
+        card.setLockedAmount(amount);
+        card.setRemainingAmount(BigDecimal.ZERO);
+        // KHÔNG set allocatedAmount = 0
+        card.setStatus(CardStatus.BLOCKED);
+
+        walletRepository.save(wallet);
+        cardRepository.save(card);
+    }
+
+    @Override
+    @Transactional
+    public void unlockCard(Long userId, Long cardId) {
+        Card card = cardRepository.findByIdAndUserIdForUpdate(cardId, userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.CARD_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        if (card.getStatus() == CardStatus.ACTIVE) {
+            throw new WalletException(
+                    MessageKeys.CARD_ALREADY_ACTIVE,
+                    HttpStatus.CONFLICT
+            );
+        }
+
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        BigDecimal amount = card.getLockedAmount();
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new WalletException(
+                    MessageKeys.INVALID_BALANCE,
+                    HttpStatus.CONFLICT
+            );
+        }
+
+        // 1. Unblock card bên Slash trước
+        slashClient.unblockCard(card.getSlashCardId());
+
+        // 2. Update local
+        wallet.setFrozenBalance(wallet.getFrozenBalance().subtract(amount));
+        wallet.setAllocatedBalance(wallet.getAllocatedBalance().add(amount));
+
+        card.setRemainingAmount(amount);
+        // allocatedAmount giữ nguyên
+        card.setLockedAmount(BigDecimal.ZERO);
+        card.setStatus(CardStatus.ACTIVE);
+
+        walletRepository.save(wallet);
+        cardRepository.save(card);
+    }
+
+
 }
 

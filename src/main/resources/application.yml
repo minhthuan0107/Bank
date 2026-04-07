@@ -65,6 +65,7 @@ slash:
     create-card: /card
     get-card: /card/{id}
     update-limit: /card/{id}
+    update-card: /card/{id}
 ses:
   from:
     email: thuanminhle0107@gmail.com

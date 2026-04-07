@@ -189,6 +189,17 @@ public class MessageKeys {
 
     public static final String WITHDRAW_OTP_STILL_VALID = "withdraw.otp.still.valid";
     public static final String BALANCE_FETCH_SUCCESS = "balance.fetch.success";
+    public static final String INVALID_BALANCE = "wallet.balance.invalid";
+    public static final String CARD_ALREADY_ACTIVE = "card.already-active";
+    public static final String CARD_ALREADY_BLOCKED = "card.already-blocked";
+    public static final String CARD_HAS_PENDING_TRANSACTION = "card.has-pending-transaction";
+
+    public static final String SLASH_UPDATE_CARD_FAILED = "card.update-failed";
+
+    public static final String CARD_LOCK_SUCCESS = "card.lock-success";
+    public static final String CARD_UNLOCK_SUCCESS = "card.unlock-success";
+
+
 
 
 

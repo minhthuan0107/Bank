@@ -41,7 +41,7 @@ public class Wallet extends BaseEntity {
     private BigDecimal allocatedBalance;
 
     /**
-     * Số tiền bị đóng băng (withdraw, pending...)
+     * Số tiền bị đóng băng
      */
     @Column(name = "frozen_balance", nullable = false, precision = 19, scale = 4)
     private BigDecimal frozenBalance;
