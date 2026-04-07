@@ -1,6 +1,8 @@
 package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.Card;
+import com.example.bank.enums.wallet.CardStatus;
+import com.example.bank.repository.projection.CardDashboardProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -12,6 +14,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 
 @Repository
@@ -58,23 +61,53 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     Page<Card> findByUserId(Long userId, Pageable pageable);
 
     @Query("""
-    SELECT COALESCE(SUM(c.remainingAmount), 0)
-    FROM Card c
-    WHERE c.userId = :userId
-      AND c.status = 'ACTIVE'
-    """)
+            SELECT COALESCE(SUM(c.remainingAmount), 0)
+            FROM Card c
+            WHERE c.userId = :userId
+              AND c.status = 'ACTIVE'
+            """)
     BigDecimal sumRemainingAmountByUserId(@Param("userId") Long userId);
 
     // ===== LẤY CARD + LOCK (QUAN TRỌNG) =====
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-        SELECT c
-        FROM Card c
-        WHERE c.id = :cardId
-        AND c.userId = :userId
-    """)
+                SELECT c
+                FROM Card c
+                WHERE c.id = :cardId
+                AND c.userId = :userId
+            """)
     Optional<Card> findByIdAndUserIdForUpdate(
             @Param("cardId") Long cardId,
             @Param("userId") Long userId
     );
+
+    @Query("""
+            SELECT c
+            FROM Card c
+            WHERE c.userId = :userId
+              AND (:cardNumber IS NULL OR c.last4 LIKE %:cardNumber%)
+              AND (:cardName IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :cardName, '%')))
+              AND (:status IS NULL OR c.status = :status)
+              AND (:fromTime IS NULL OR c.createdAt >= :fromTime)
+              AND (:toTime IS NULL OR c.createdAt <= :toTime)
+            """)
+    Page<Card> searchEntity(
+            Long userId,
+            String cardNumber,
+            String cardName,
+            CardStatus status,
+            Instant fromTime,
+            Instant toTime,
+            Pageable pageable
+    );
+
+    @Query("""
+    SELECT 
+    COALESCE(SUM(c.remainingAmount), 0) as totalBalance,
+    COALESCE(SUM(CASE WHEN c.status = 'ACTIVE' THEN 1 ELSE 0 END), 0) as activeCount,
+    COALESCE(SUM(CASE WHEN c.status = 'BLOCKED' THEN 1 ELSE 0 END), 0) as blockedCount
+    FROM Card c
+    WHERE c.userId = :userId
+    """)
+    CardDashboardProjection getDashboard(@Param("userId") Long userId);
 }

@@ -199,6 +199,9 @@ public class MessageKeys {
     public static final String CARD_LOCK_SUCCESS = "card.lock-success";
     public static final String CARD_UNLOCK_SUCCESS = "card.unlock-success";
 
+    public static final String INVALID_TIME_RANGE = "validation.time-range.invalid";
+    public static final String CARD_DASHBOARD_SUCCESS = "card.dashboard.success";
+
 
 
 
