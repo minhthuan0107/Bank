@@ -102,12 +102,21 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     );
 
     @Query("""
-    SELECT 
-    COALESCE(SUM(c.remainingAmount), 0) as totalBalance,
-    COALESCE(SUM(CASE WHEN c.status = 'ACTIVE' THEN 1 ELSE 0 END), 0) as activeCount,
-    COALESCE(SUM(CASE WHEN c.status = 'BLOCKED' THEN 1 ELSE 0 END), 0) as blockedCount
-    FROM Card c
-    WHERE c.userId = :userId
-    """)
+            SELECT 
+            COALESCE(SUM(c.remainingAmount), 0) as totalBalance,
+            COALESCE(SUM(CASE WHEN c.status = 'ACTIVE' THEN 1 ELSE 0 END), 0) as activeCount,
+            COALESCE(SUM(CASE WHEN c.status = 'BLOCKED' THEN 1 ELSE 0 END), 0) as blockedCount
+            FROM Card c
+            WHERE c.userId = :userId
+            """)
     CardDashboardProjection getDashboard(@Param("userId") Long userId);
+
+
+    @Query("""
+            SELECT 
+                COALESCE(SUM(CASE WHEN c.status = 'ACTIVE' THEN 1 ELSE 0 END), 0)
+            FROM Card c
+            WHERE c.userId = :userId
+            """)
+    Long getActivatedCardCount(Long userId);
 }

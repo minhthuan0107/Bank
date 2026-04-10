@@ -2,6 +2,7 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.Stablecoin;
+import com.example.bank.repository.projection.WalletSummaryProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -53,11 +54,22 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     );
 
     @Query("""
-    SELECT w.availableBalance
-    FROM Wallet w
-    WHERE w.userId = :userId
-    """)
+            SELECT w.availableBalance
+            FROM Wallet w
+            WHERE w.userId = :userId
+            """)
     Optional<BigDecimal> findAvailableBalanceByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT 
+                w.totalBalance as totalBalance,
+                w.allocatedBalance as allocatedBalance,
+                w.frozenBalance as frozenBalance,
+                w.availableBalance as availableBalance
+            FROM Wallet w
+            WHERE w.userId = :userId
+            """)
+    WalletSummaryProjection getWalletSummary(Long userId);
 
 
 }

@@ -9,8 +9,10 @@ import com.example.bank.dto.request.wallet.user.TopupCardRequest;
 import com.example.bank.dto.request.wallet.user.WithDrawCardRequest;
 import com.example.bank.dto.response.wallet.user.BalanceResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
+import com.example.bank.dto.response.wallet.user.DashboardResponse;
 import com.example.bank.service.wallet.user.CardFundingService;
 import com.example.bank.service.wallet.user.CardService;
+import com.example.bank.service.wallet.user.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,6 +30,7 @@ public class WalletController {
     private final LocalizationUtils i18n;
     private final CardService cardService;
     private final CardFundingService cardFundingService;
+    private final WalletService walletService;
 
 
     @PostMapping("/create-card")
@@ -134,7 +137,19 @@ public class WalletController {
         );
     }
 
-
-
-
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        DashboardResponse response =
+                walletService.getDashboard(currentUser.getId());
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.DASHBOARD_SUCCESS),
+                        response
+                )
+        );
+    }
 }
