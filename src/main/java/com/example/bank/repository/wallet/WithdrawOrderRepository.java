@@ -2,6 +2,7 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
+import com.example.bank.repository.projection.WithdrawDashboardProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -74,4 +75,33 @@ public interface WithdrawOrderRepository extends JpaRepository<WithdrawOrder, Lo
             WithdrawOrderStatus status
     );
 
+    @Query("""
+            SELECT w
+            FROM WithdrawOrder w
+            WHERE w.userId = :userId
+              AND (:orderNo IS NULL OR w.orderNo LIKE %:orderNo%)
+              AND (:address IS NULL OR LOWER(w.toAddress) LIKE LOWER(CONCAT('%', :address, '%')))
+              AND (:status IS NULL OR w.status = :status)
+              AND (:fromTime IS NULL OR w.createdAt >= :fromTime)
+              AND (:toTime IS NULL OR w.createdAt <= :toTime)
+            """)
+    Page<WithdrawOrder> search(
+            Long userId,
+            String orderNo,
+            String address,
+            WithdrawOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT 
+                COALESCE(SUM(w.amount), 0) as totalAmount,
+                COALESCE(SUM(CASE WHEN w.status = 'SUCCESS' THEN 1 ELSE 0 END), 0) as successCount,
+                COALESCE(SUM(CASE WHEN w.status = 'FAILED' THEN 1 ELSE 0 END), 0) as failedCount
+            FROM WithdrawOrder w
+            WHERE w.userId = :userId
+            """)
+    WithdrawDashboardProjection getDashboard(Long userId);
 }

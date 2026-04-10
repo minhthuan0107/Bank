@@ -60,6 +60,8 @@ public class CardController {
                 )
         );
     }
+
+
     @GetMapping("/search")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<CardPageResponse>> getCards(

@@ -10,6 +10,7 @@ import com.example.bank.dto.response.wallet.user.BalanceResponse;
 import com.example.bank.dto.response.wallet.user.CardDashboardResponse;
 import com.example.bank.dto.response.wallet.user.CardListResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
+import com.example.bank.entity.user.User;
 import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.wallet.CardBrand;
 import com.example.bank.enums.wallet.CardStatus;
@@ -17,6 +18,7 @@ import com.example.bank.enums.wallet.CardTransactionStatus;
 import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.event.CardCreatedEvent;
 import com.example.bank.repository.projection.CardDashboardProjection;
+import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.*;
 import com.example.bank.service.redis.LockService;
 import com.example.bank.service.wallet.user.CardService;
@@ -46,6 +48,7 @@ public class CardServiceImpl implements CardService {
     private final SlashClient slashClient;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final CardFundingTransactionRepository transactionRepository;
+    private final UserRepository userRepository;
     private static final int DEFAULT_PAGE_SIZE = 10;
 
 
@@ -77,9 +80,15 @@ public class CardServiceImpl implements CardService {
                 );
             }
 
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new WalletException(
+                            MessageKeys.USER_NOT_FOUND,
+                            HttpStatus.NOT_FOUND
+                    ));
+
             // ===== LIMIT CARD =====
             long totalCard = cardRepository.countByUserId(userId);
-            if (totalCard >= walletProperties.getLimit()) {
+            if (totalCard >= user.getCardOpenLimit()) {
                 throw new WalletException(
                         MessageKeys.CARD_LIMIT_EXCEEDED,
                         HttpStatus.BAD_REQUEST

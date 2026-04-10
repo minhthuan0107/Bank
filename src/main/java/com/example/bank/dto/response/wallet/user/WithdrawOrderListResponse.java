@@ -4,6 +4,7 @@ import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Column;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -34,6 +35,9 @@ public class WithdrawOrderListResponse {
     @JsonProperty("created_at")
     private Instant createdAt;
 
+    @Column(name = "admin_note")
+    private String adminNote;
+
     public static WithdrawOrderListResponse from(WithdrawOrder order) {
         return WithdrawOrderListResponse.builder()
                 .orderNo(order.getOrderNo())
@@ -43,6 +47,7 @@ public class WithdrawOrderListResponse {
                 .amount(order.getAmount())
                 .status(order.getStatus())
                 .createdAt(order.getCreatedAt())
+                .adminNote(order.getAdminNote())
                 .build();
     }
 }
