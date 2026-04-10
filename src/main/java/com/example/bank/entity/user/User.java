@@ -47,6 +47,9 @@ public class User {
     @Column(nullable = false, length = 20)
     private AccountStatus status; // ACTIVE, LOCKED, SUSPENDED
 
+    @Column(name = "card_open_limit", nullable = false)
+    private Integer cardOpenLimit ;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 

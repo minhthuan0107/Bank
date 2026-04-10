@@ -313,6 +313,7 @@ public class AuthServiceImpl implements AuthService {
                 .passwordVersion(1)
                 .role(defaultUserRole)
                 .status(AccountStatus.ACTIVE)
+                .cardOpenLimit(15)
                 .build();
 
         try {

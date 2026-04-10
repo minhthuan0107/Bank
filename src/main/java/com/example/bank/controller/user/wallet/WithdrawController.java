@@ -7,7 +7,9 @@ import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.user.ConfirmWithdrawOtpRequest;
 import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
 import com.example.bank.dto.response.wallet.user.CreateWithdrawOrderResponse;
+import com.example.bank.dto.response.wallet.user.WithdrawDashboardResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
+import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import com.example.bank.service.wallet.user.WithdrawService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -17,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("${api.prefix}/withdraw")
@@ -105,6 +109,57 @@ public class WithdrawController {
                 ApiResponse.success(
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.WITHDRAW_ORDER_LIST_SUCCESS),
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/orders")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<WithdrawOrderPageResponse>> getWithdrawOrders(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) WithdrawOrderStatus status,
+
+            @RequestParam(required = false) Instant fromTime,
+            @RequestParam(required = false) Instant toTime,
+
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        WithdrawOrderPageResponse response =
+                withdrawService.getWithdrawOrders(
+                        currentUser.getId(),
+                        orderNo,
+                        address,
+                        status,
+                        fromTime,
+                        toTime,
+                        page
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.WITHDRAW_ORDER_LIST_SUCCESS),
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<WithdrawDashboardResponse>> getWithdrawDashboard(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        WithdrawDashboardResponse response =
+                withdrawService.getWithdrawDashboard(currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.WITHDRAW_DASHBOARD_SUCCESS),
                         response
                 )
         );

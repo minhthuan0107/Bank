@@ -14,6 +14,7 @@ import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.user.AccountStatus;
 import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.enums.wallet.Stablecoin;
+import com.example.bank.repository.projection.DepositDashboardProjection;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.*;
 import com.example.bank.service.wallet.user.DepositService;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -388,6 +390,86 @@ public class DepositServiceImpl implements DepositService {
                 .size(DEFAULT_PAGE_SIZE)
                 .totalSize(orders.getTotalElements())
                 .hasNext(orders.hasNext())
+                .build();
+    }
+
+    public DepositOrderPageResponse getDepositOrders(
+            Long userId,
+            String orderNo,
+            String address,
+            DepositOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        //normalize
+        orderNo = normalize(orderNo);
+        address = normalize(address);
+        //validate time
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new WalletException(
+                    MessageKeys.INVALID_TIME_RANGE,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+        page = Math.max(page, 0);
+        Pageable pageable = PageRequest.of(
+                page,
+                DEFAULT_PAGE_SIZE,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<DepositOrder> result = depositOrderRepository.search(
+                userId,
+                orderNo,
+                address,
+                status,
+                fromTime,
+                toTime,
+                pageable
+        );
+
+        List<DepositOrderListResponse> items = result.getContent()
+                .stream()
+                .map(DepositOrderListResponse::from)
+                .toList();
+
+        return DepositOrderPageResponse.builder()
+                .items(items)
+                .page(page)
+                .size(DEFAULT_PAGE_SIZE)
+                .totalSize(result.getTotalElements())
+                .hasNext(result.hasNext())
+                .build();
+    }
+    private String normalize(String val) {
+        return (val == null || val.isBlank()) ? null : val.trim();
+    }
+
+    @Override
+    public DepositDashboardResponse getDepositDashboard(Long userId) {
+        DepositDashboardProjection p = depositOrderRepository.getDashboard(userId);
+        return DepositDashboardResponse.builder()
+                .totalAmount(
+                        p != null && p.getTotalAmount() != null
+                                ? p.getTotalAmount().stripTrailingZeros()
+                                : BigDecimal.ZERO
+                )
+                .pendingCount(
+                        p != null && p.getPendingCount() != null
+                                ? p.getPendingCount()
+                                : 0L
+                )
+                .successCount(
+                        p != null && p.getSuccessCount() != null
+                                ? p.getSuccessCount()
+                                : 0L
+                )
+                .failedCount(
+                        p != null && p.getFailedCount() != null
+                                ? p.getFailedCount()
+                                : 0L
+                )
                 .build();
     }
 

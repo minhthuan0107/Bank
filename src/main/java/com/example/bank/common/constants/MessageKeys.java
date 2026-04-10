@@ -201,6 +201,10 @@ public class MessageKeys {
 
     public static final String INVALID_TIME_RANGE = "validation.time-range.invalid";
     public static final String CARD_DASHBOARD_SUCCESS = "card.dashboard.success";
+    public static final String WITHDRAW_DASHBOARD_SUCCESS = "withdraw.dashboard.success";
+
+    public static final String DEPOSIT_DASHBOARD_SUCCESS = "deposit.dashboard.success";
+
 
 
 

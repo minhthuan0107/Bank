@@ -9,11 +9,13 @@ import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.ConfirmWithdrawOtpRequest;
 import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
 import com.example.bank.dto.response.wallet.user.CreateWithdrawOrderResponse;
+import com.example.bank.dto.response.wallet.user.WithdrawDashboardResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderListResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
+import com.example.bank.repository.projection.WithdrawDashboardProjection;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.repository.wallet.WithdrawOrderRepository;
@@ -401,6 +403,84 @@ public class WithdrawServiceImpl implements WithdrawService {
                 .size(DEFAULT_PAGE_SIZE)
                 .totalSize(orders.getTotalElements())
                 .hasNext(orders.hasNext())
+                .build();
+    }
+
+    @Override
+    public WithdrawOrderPageResponse getWithdrawOrders(
+            Long userId,
+            String orderNo,
+            String address,
+            WithdrawOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        // normalize
+        orderNo = normalize(orderNo);
+        address = normalize(address);
+
+        // validate time
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new WalletException(
+                    MessageKeys.INVALID_TIME_RANGE,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        page = Math.max(page, 0);
+        Pageable pageable = PageRequest.of(
+                page,
+                DEFAULT_PAGE_SIZE,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+        Page<WithdrawOrder> result = withdrawRepository.search(
+                userId,
+                orderNo,
+                address,
+                status,
+                fromTime,
+                toTime,
+                pageable
+        );
+
+        List<WithdrawOrderListResponse> items = result.getContent()
+                .stream()
+                .map(WithdrawOrderListResponse::from)
+                .toList();
+
+        return WithdrawOrderPageResponse.builder()
+                .items(items)
+                .page(page)
+                .size(DEFAULT_PAGE_SIZE)
+                .totalSize(result.getTotalElements())
+                .hasNext(result.hasNext())
+                .build();
+    }
+
+    private String normalize(String val) {
+        return (val == null || val.isBlank()) ? null : val.trim();
+    }
+
+    @Override
+    public WithdrawDashboardResponse getWithdrawDashboard(Long userId) {
+        WithdrawDashboardProjection p = withdrawRepository.getDashboard(userId);
+        return WithdrawDashboardResponse.builder()
+                .totalAmount(
+                        p != null && p.getTotalAmount() != null
+                                ? p.getTotalAmount()
+                                : BigDecimal.ZERO
+                )
+                .successCount(
+                        p != null && p.getSuccessCount() != null
+                                ? p.getSuccessCount()
+                                : 0L
+                )
+                .failedCount(
+                        p != null && p.getFailedCount() != null
+                                ? p.getFailedCount()
+                                : 0L
+                )
                 .build();
     }
 }

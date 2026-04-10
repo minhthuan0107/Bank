@@ -6,10 +6,8 @@ import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.user.CreateDepositOrderRequest;
 import com.example.bank.dto.request.wallet.user.DepositPreviewRequest;
-import com.example.bank.dto.response.wallet.user.CreateDepositOrderResponse;
-import com.example.bank.dto.response.wallet.user.DepositConfigResponse;
-import com.example.bank.dto.response.wallet.user.DepositOrderPageResponse;
-import com.example.bank.dto.response.wallet.user.DepositPreviewResponse;
+import com.example.bank.dto.response.wallet.user.*;
+import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.service.wallet.user.DepositService;
 import jakarta.validation.Valid;
@@ -23,6 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 
 
@@ -132,6 +131,55 @@ public class DepositController {
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.DEPOSIT_ORDER_LIST_SUCCESS),
                         data
+                )
+        );
+    }
+
+    @GetMapping("/orders")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<DepositOrderPageResponse>> getDepositOrders(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) DepositOrderStatus status,
+            @RequestParam(required = false) Instant fromTime,
+            @RequestParam(required = false) Instant toTime,
+
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        DepositOrderPageResponse response =
+                depositService.getDepositOrders(
+                        currentUser.getId(),
+                        orderNo,
+                        address,
+                        status,
+                        fromTime,
+                        toTime,
+                        page
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_ORDER_LIST_SUCCESS),
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<DepositDashboardResponse>> getDepositDashboard(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        DepositDashboardResponse response =
+                depositService.getDepositDashboard(currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.DEPOSIT_DASHBOARD_SUCCESS),
+                        response
                 )
         );
     }
