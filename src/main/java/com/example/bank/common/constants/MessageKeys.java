@@ -205,6 +205,8 @@ public class MessageKeys {
 
     public static final String DEPOSIT_DASHBOARD_SUCCESS = "deposit.dashboard.success";
 
+    public static final String DASHBOARD_SUCCESS = "dashboard.success";
+
 
 
 

@@ -44,7 +44,6 @@ public class CardServiceImpl implements CardService {
     private final CardBinRepository cardBinRepository;
     private final CardHolderRepository cardHolderRepository;
     private final LockService lockService;
-    private final WalletProperties walletProperties;
     private final SlashClient slashClient;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final CardFundingTransactionRepository transactionRepository;
