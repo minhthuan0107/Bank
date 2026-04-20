@@ -225,12 +225,7 @@ public class MessageKeys {
     public static final String CASHBACK_RULE_UPDATED = "cashback.rule.updated";
     public static final String CASHBACK_RULE_DELETED = "cashback.rule.deleted";
     public static final String CASHBACK_DASHBOARD_SUCCESS = "cashback.dashboard.success";
-
-
-
-
-
-
+    public static final String CASHBACK_RULE_LIST_SUCCESS = "cashback.rule.list.success";
 
 
 }

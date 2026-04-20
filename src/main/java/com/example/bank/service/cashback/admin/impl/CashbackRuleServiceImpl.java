@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -137,5 +138,13 @@ public class CashbackRuleServiceImpl implements CashbackRuleService {
 
         rule.setIsActive(false);
         repository.save(rule);
+    }
+
+    @Override
+    public List<CashbackRuleResponse> getCashbackRules() {
+        List<CashbackRule> rules = repository.findAllByIsActiveTrueOrderByMinSpentAsc();
+        return rules.stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 }
