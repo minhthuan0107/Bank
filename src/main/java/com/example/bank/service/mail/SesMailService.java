@@ -22,7 +22,7 @@ public class SesMailService implements MailService {
     private String fromName;
 
     @Override
-    @Async
+    @Async("mailTaskExecutor")
     public void sendOtp(String email, String otp) {
         String subject = "Bank OTP Verification";
 
@@ -65,9 +65,8 @@ public class SesMailService implements MailService {
             sesClient.sendEmail(request);
             log.info("OTP email sent to {}", email);
         } catch (Exception e) {
-
             log.error("Failed to send OTP email to {}", maskEmail(email), e);
-            throw new RuntimeException("Send OTP email failed");
+
         }
     }
     private String maskEmail(String email) {

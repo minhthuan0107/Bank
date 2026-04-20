@@ -14,7 +14,6 @@ import com.example.bank.entity.user.User;
 import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.wallet.CardBrand;
 import com.example.bank.enums.wallet.CardStatus;
-import com.example.bank.enums.wallet.CardTransactionStatus;
 import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.event.CardCreatedEvent;
 import com.example.bank.repository.projection.CardDashboardProjection;
@@ -123,7 +122,7 @@ public class CardServiceImpl implements CardService {
                     .slashCardId(slashCard.getId())
                     .name(request.getName())
                     .type("virtual")
-                    .allocatedAmount(amount)
+                    .cardLimit(amount)
                     .note(request.getNote())
                     .currency("USD")
                     .spentAmount(BigDecimal.ZERO)

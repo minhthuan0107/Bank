@@ -82,7 +82,6 @@ public class WalletController {
             @Valid @RequestBody WithDrawCardRequest request,
             @AuthenticationPrincipal UserDetailsImpl currentUser
     ) {
-
         cardFundingService.withdrawCard(
                 currentUser.getId(),
                 cardId,

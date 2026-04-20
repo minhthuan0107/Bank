@@ -31,5 +31,6 @@ public class SlashProperties {
         private String getCard;
         private String updateLimit;
         private String updateCard;
+        private String getTransaction;
     }
 }

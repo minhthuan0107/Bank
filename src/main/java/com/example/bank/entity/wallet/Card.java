@@ -44,12 +44,9 @@ public class Card extends BaseEntity {
     private String type;
 
     // ===== MONEY =====
-
-    /**
-     * Số tiền allocate vào thẻ
-     */
-    @Column(name = "allocated_amount", nullable = false, precision = 19, scale = 4)
-    private BigDecimal allocatedAmount;
+    // Hạn mức của thẻ trên Slash
+    @Column(name = "card_limit", nullable = false, precision = 19, scale = 4)
+    private BigDecimal cardLimit;
 
     /**
      * Số tiền đã tiêu

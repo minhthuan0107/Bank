@@ -40,7 +40,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
                 UPDATE Card c
-                SET c.allocatedAmount = c.allocatedAmount + :amount,
+                SET c.cardLimit = c.cardLimit + :amount,
                     c.remainingAmount = c.remainingAmount + :amount
                 WHERE c.id = :cardId
             """)
@@ -50,7 +50,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     @Modifying
     @Query("""
             UPDATE Card c
-            SET c.allocatedAmount = c.allocatedAmount - :amount,
+            SET c.cardLimit = c.cardLimit - :amount,
                 c.remainingAmount = c.remainingAmount - :amount
             WHERE c.id = :cardId
             """)
@@ -119,4 +119,11 @@ public interface CardRepository extends JpaRepository<Card, Long> {
             WHERE c.userId = :userId
             """)
     Long getActivatedCardCount(Long userId);
+
+
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Card c WHERE c.slashCardId = :slashCardId")
+    Optional<Card> findBySlashCardIdForUpdate(@Param("slashCardId") String slashCardId);
+
 }

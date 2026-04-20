@@ -91,6 +91,10 @@ public class SecurityConfig {
                                 apiPrefix + "/webhook/bunny/video-uploaded"
                         ).permitAll()
 
+                        .requestMatchers(HttpMethod.POST,
+                                apiPrefix + "/webhook/slash"
+                        ).permitAll()
+
                         // Public static / docs
                         .requestMatchers(
                                 apiPrefix + "/public/**",

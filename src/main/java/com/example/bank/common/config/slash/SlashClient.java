@@ -7,6 +7,7 @@ import com.example.bank.dto.request.wallet.s3.SlashCreateCardRequest;
 import com.example.bank.dto.request.wallet.s3.SlashUpdateLimitRequest;
 import com.example.bank.dto.response.slash.SlashCardDetailResponse;
 import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
+import com.example.bank.dto.response.wallet.user.SlashTransactionResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -188,7 +191,6 @@ public class SlashClient {
     }
 
 
-
     public void lockCard(String cardId) {
         updateCardStatus(cardId, CardStatus.PAUSED);
     }
@@ -268,4 +270,56 @@ public class SlashClient {
         CLOSED("closed");
         private final String value;
     }
+
+    private SlashTransactionResponse callSlash(String url, String id) {
+        log.info("Calling Slash API: {}", url);
+
+        try {
+            SlashTransactionResponse response = webClient.get()
+                    .uri(url)
+                    .header("X-API-Key", props.getApi().getKey()) // ✅ chỉ header này
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, clientResponse ->
+                            clientResponse.bodyToMono(String.class)
+                                    .flatMap(errBody -> {
+                                        log.error("SLASH-ERROR id={} status={} body={}",
+                                                id, clientResponse.statusCode(), errBody);
+
+                                        return Mono.error(new WalletException(
+                                                MessageKeys.SLASH_GET_TRANSACTION_FAILED,
+                                                HttpStatus.BAD_GATEWAY));
+                                    })
+                    )
+                    .bodyToMono(SlashTransactionResponse.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .block();
+
+            if (response == null) {
+                log.warn("Slash returned null body id={}", id);
+            }
+
+            return response;
+
+        } catch (WalletException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("SLASH-ERROR id={} err={}", id, e.getMessage(), e);
+            throw new WalletException(
+                    MessageKeys.SLASH_GET_TRANSACTION_FAILED,
+                    HttpStatus.BAD_GATEWAY);
+        }
+    }
+
+    public SlashTransactionResponse getTransaction(String id) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("transactionId is blank");
+        }
+            String url = props.getBaseUrl()
+                    + props.getEndpoints().getGetTransaction()
+                    .replace("{id}", id);
+        return callSlash(url, id);
+    }
+
+
+
 }
