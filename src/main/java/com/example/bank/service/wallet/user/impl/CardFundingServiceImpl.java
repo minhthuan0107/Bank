@@ -85,12 +85,12 @@ public class CardFundingServiceImpl implements CardFundingService {
             }
 
             // ===== GET CARD =====
-            Card card = cardRepository.findByIdAndUserId(cardId,userId)
+            Card card = cardRepository.findByIdAndUserId(cardId, userId)
                     .orElseThrow(() -> new WalletException(
                             MessageKeys.CARD_NOT_FOUND,
                             HttpStatus.NOT_FOUND
                     ));
-            BigDecimal newLimit = card.getAllocatedAmount().add(amount);
+            BigDecimal newLimit = card.getCardLimit().add(amount);
             // ===== CALL SLASH =====
             slashClient.setLimit(card.getSlashCardId(), newLimit);
 
@@ -195,7 +195,7 @@ public class CardFundingServiceImpl implements CardFundingService {
             }
 
             // ===== CALCULATE NEW LIMIT =====
-            BigDecimal newLimit = card.getAllocatedAmount().subtract(amount);
+            BigDecimal newLimit = card.getCardLimit().subtract(amount);
             // ===== CALL SLASH =====
             slashClient.setLimit(card.getSlashCardId(), newLimit);
 
@@ -226,13 +226,11 @@ public class CardFundingServiceImpl implements CardFundingService {
         } catch (Exception e) {
             log.error("WITHDRAW FAIL userId={} cardId={} err={}",
                     userId, cardId, e.getMessage());
+
             txn.setStatus(CardTxnStatus.FAILED);
             txnRepo.save(txn);
-
-            throw new WalletException(
-                    MessageKeys.CARD_WITHDRAW_FAILED,
-                    HttpStatus.BAD_GATEWAY
-            );
+            throw e;
         }
     }
 }
+

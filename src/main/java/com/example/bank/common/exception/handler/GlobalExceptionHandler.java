@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -281,15 +282,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WalletException.class)
     public ResponseEntity<?> handleWalletException(WalletException ex) {
         String localized = i18n.getLocalizedMessage(ex.getMessageKey());
-        return ResponseEntity.status(
-                ex.getStatus()).body(Map.of(
-                "status", ex.getStatus().value(),
-                "type", ex.getStatus().name(),
-                "message", localized,
-                "data", ex.getData()
-        ));
-    }
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", ex.getStatus().value());
+        body.put("type", ex.getStatus().name());
+        body.put("message", localized);
 
+        if (ex.getData() != null) {
+            body.put("data", ex.getData());
+        }
+
+        return ResponseEntity.status(ex.getStatus()).body(body);
+    }
     /**
      * Bắt lỗi domain liên quan đến User.
      */

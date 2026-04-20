@@ -207,8 +207,24 @@ public class MessageKeys {
 
     public static final String DASHBOARD_SUCCESS = "dashboard.success";
 
+    public static final String SLASH_GET_TRANSACTION_FAILED = "slash.get_transaction.failed";
 
 
+
+    public static final String VALIDATION_MIN_SPENT_INVALID = "validation.cashback.min-spent.invalid";
+    public static final String VALIDATION_AMOUNT_FORMAT = "validation.amount.format";
+    public static final String VALIDATION_PERCENT_FORMAT = "validation.percent.format";
+    public static final String VALIDATION_CASHBACK_PERCENT_INVALID = "validation.cashback.percent.invalid";
+    // ===== Cashback Required Validation =====
+    public static final String VALIDATION_CASHBACK_PERCENT_REQUIRED = "validation.cashback.percent.required";
+    public static final String VALIDATION_MIN_SPENT_REQUIRED = "validation.cashback.min-spent.required";
+    public static final String INVALID_CASHBACK_RANGE = "validation.cashback.range.invalid";
+    public static final String CASHBACK_RULE_CREATED = "cashback.rule.created";
+    public static final String CASHBACK_PERCENT_ALREADY_EXISTS = "cashback.percent.already-exists";
+    public static final String CASHBACK_RULE_NOT_FOUND = "cashback.rule.not-found";
+    public static final String CASHBACK_RULE_UPDATED = "cashback.rule.updated";
+    public static final String CASHBACK_RULE_DELETED = "cashback.rule.deleted";
+    public static final String CASHBACK_DASHBOARD_SUCCESS = "cashback.dashboard.success";
 
 
 

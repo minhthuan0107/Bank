@@ -66,6 +66,7 @@ slash:
     get-card: /card/{id}
     update-limit: /card/{id}
     update-card: /card/{id}
+    get-transaction: /transaction/{id}
 ses:
   from:
     email: thuanminhle0107@gmail.com

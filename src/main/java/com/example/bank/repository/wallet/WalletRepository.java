@@ -72,4 +72,9 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     WalletSummaryProjection getWalletSummary(Long userId);
 
 
+
+
+
+
+
 }

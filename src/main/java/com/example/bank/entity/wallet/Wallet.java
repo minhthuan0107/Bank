@@ -35,7 +35,7 @@ public class Wallet extends BaseEntity {
     private BigDecimal totalBalance;
 
     /**
-     * Số tiền đã allocate vào card
+     * Tôổng số dư của thẻ
      */
     @Column(name = "allocated_balance", nullable = false, precision = 19, scale = 4)
     private BigDecimal allocatedBalance;
