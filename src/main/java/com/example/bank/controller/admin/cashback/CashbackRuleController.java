@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("${api.prefix}/admin/cashback-rules")
 @RequiredArgsConstructor
@@ -67,6 +69,19 @@ public class CashbackRuleController {
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.CASHBACK_RULE_DELETED),
                         null
+                )
+        );
+    }
+
+    @GetMapping("list")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<CashbackRuleResponse>>> getCashbackRules() {
+        List<CashbackRuleResponse> data = service.getCashbackRules();
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CASHBACK_RULE_LIST_SUCCESS),
+                        data
                 )
         );
     }
