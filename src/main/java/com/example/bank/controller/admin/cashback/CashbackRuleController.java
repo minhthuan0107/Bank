@@ -8,7 +8,9 @@ import com.example.bank.dto.request.cashback.admin.CreateCashbackRuleRequest;
 import com.example.bank.dto.request.cashback.admin.UpdateCashbackRuleRequest;
 import com.example.bank.dto.response.cashback.admin.CashbackRefundPageResponse;
 import com.example.bank.dto.response.cashback.admin.CashbackRuleResponse;
+import com.example.bank.dto.response.cashback.user.CashbackHistoryPageResponse;
 import com.example.bank.service.cashback.admin.CashbackRuleService;
+import com.example.bank.service.cashback.user.CashbackService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -29,6 +31,7 @@ public class CashbackRuleController {
 
     private final CashbackRuleService service;
     private final LocalizationUtils i18n;
+    private final CashbackService cashbackService;
 
     @PostMapping("create")
     @PreAuthorize("hasRole('ADMIN')")
@@ -128,4 +131,27 @@ public class CashbackRuleController {
         );
     }
 
+    /**
+     * Admin xem lịch sử cashback của user bất kỳ
+     */
+    @GetMapping("history/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CashbackHistoryPageResponse>> getUserCashbackHistory(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        CashbackHistoryPageResponse data =
+                cashbackService.getUserCashbackHistory(
+                        userId,
+                        page
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CASHBACK_HISTORY_LIST_SUCCESS),
+                        data
+                )
+        );
+    }
 }

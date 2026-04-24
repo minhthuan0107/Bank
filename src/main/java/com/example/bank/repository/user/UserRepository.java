@@ -4,6 +4,8 @@ import com.example.bank.entity.user.User;
 import com.example.bank.enums.user.AccountStatus;
 import com.example.bank.projection.UserNameProjection;
 import io.lettuce.core.dynamic.annotation.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -41,6 +43,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<String> findEmailByUserId(Long userId);
 
     List<UserNameProjection> findByIdIn(Collection<Long> ids);
+
+    Page<User> findByRoleName(
+            String roleName,
+            Pageable pageable
+    );
 
 
 }

@@ -1,7 +1,10 @@
 package com.example.bank.service.cashback.user.impl;
 
+import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
+import com.example.bank.dto.response.cashback.user.CashbackHistoryPageResponse;
+import com.example.bank.dto.response.cashback.user.CashbackHistoryResponse;
 import com.example.bank.dto.response.wallet.user.CashbackDashboardResponse;
 import com.example.bank.dto.response.wallet.user.CashbackTierResponse;
 import com.example.bank.entity.wallet.CashbackRule;
@@ -12,6 +15,9 @@ import com.example.bank.repository.wallet.CashbackRuleRepository;
 import com.example.bank.repository.wallet.UserCashbackMonthlyRepository;
 import com.example.bank.service.cashback.user.CashbackService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +34,8 @@ public class CashbackServiceImpl implements CashbackService {
     private final CardTransactionRepository cardTransactionRepository;
     private final CashbackRuleRepository cashbackRuleRepository;
     private final UserCashbackMonthlyRepository monthlyRepository;
+    private final WalletProperties walletProperties;
+    private final UserCashbackMonthlyRepository userCashbackMonthlyRepository;
 
 
     public CashbackDashboardResponse getDashboard(Long userId) {
@@ -122,6 +130,56 @@ public class CashbackServiceImpl implements CashbackService {
                 .cashbackAmount(monthly.getCashbackAmount())
                 .currentPercent(null)
                 .tiers(tiers)
+                .build();
+    }
+
+    @Override
+    public CashbackHistoryPageResponse getUserCashbackHistory(
+            Long userId,
+            int page
+    ) {
+        int size = walletProperties.getDefaultPageSize();
+
+        // ===== 2. Validate page =====
+        if (page < 0) {
+            page = 0;
+        }
+
+        // ===== 4. Query DB: chỉ lấy APPROVED =====
+        Page<UserCashbackMonthly> pageData =
+                userCashbackMonthlyRepository.findByUserIdAndStatus(
+                        userId,
+                        CashbackStatus.APPROVED,
+                        PageRequest.of(
+                                page,
+                                size,
+                                Sort.by(Sort.Direction.DESC, "month")
+                                        .and(Sort.by(Sort.Direction.DESC, "id"))
+                        )
+                );
+
+        // ===== 5. Map response =====
+        List<CashbackHistoryResponse> items = pageData.getContent()
+                .stream()
+                .map(m -> CashbackHistoryResponse.builder()
+                        .userId(m.getUserId())
+                        .month(m.getMonth())
+                        .totalSpent(m.getTotalSpent())
+                        .cashbackAmount(m.getCashbackAmount())
+                        .percent(m.getPercent())
+                        .cashbackStatus(m.getStatus())
+                        .approvedAt(m.getApprovedAt())
+                        .build()
+                )
+                .toList();
+
+        // ===== 6. Return page response =====
+        return CashbackHistoryPageResponse.builder()
+                .items(items)
+                .page(page)
+                .size(size)
+                .totalSize(pageData.getTotalElements())
+                .hasNext(pageData.hasNext())
                 .build();
     }
 

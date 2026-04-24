@@ -233,6 +233,15 @@ public class MessageKeys {
     public static final String INVALID_MONTH = "invalid.month";
     public static final String CASHBACK_REFUND_LIST_SUCCESS = "cashback.refund.list.success";
     public static final String CASHBACK_BATCH_APPROVED = "cashback.batch.approved";
+    public static final String CASHBACK_HISTORY_LIST_SUCCESS = "cashback.history.list.success";
+    public static final String ADMIN_USER_LIST_SUCCESS = "admin.user.list.success";
+    public static final String CARD_OPEN_LIMIT_UPDATE_SUCCESS = "card.open.limit.update.success";
+
+    public static final String VALIDATION_CARD_OPEN_LIMIT_REQUIRED = "validation.card.open.limit.required";
+    public static final String VALIDATION_CARD_OPEN_LIMIT_INVALID = "validation.card.open.limit.invalid";
+
+    public static final String USER_CARD_LIMIT_UPDATE_NOT_ALLOWED = "user.card.limit.update.not.allowed";
+
 
 
 
