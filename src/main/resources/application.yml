@@ -49,6 +49,7 @@ otp:
 
 wallet:
   limit: 15
+  default-page-size: 15
 
 aws:
   region: ${AWS_REGION}

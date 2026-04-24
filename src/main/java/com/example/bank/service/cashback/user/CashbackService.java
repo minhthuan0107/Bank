@@ -1,4 +1,4 @@
-package com.example.bank.service.wallet.user;
+package com.example.bank.service.cashback.user;
 
 import com.example.bank.dto.response.wallet.user.CashbackDashboardResponse;
 

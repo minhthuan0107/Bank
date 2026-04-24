@@ -1,4 +1,4 @@
-package com.example.bank.service.wallet.user.impl;
+package com.example.bank.service.cashback.user.impl;
 
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
@@ -10,12 +10,10 @@ import com.example.bank.enums.wallet.CashbackStatus;
 import com.example.bank.repository.wallet.CardTransactionRepository;
 import com.example.bank.repository.wallet.CashbackRuleRepository;
 import com.example.bank.repository.wallet.UserCashbackMonthlyRepository;
-import com.example.bank.service.wallet.user.CashbackService;
+import com.example.bank.service.cashback.user.CashbackService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;

@@ -42,6 +42,8 @@ public class UserCashbackMonthly extends BaseEntity {
     @Column(name = "cashback_amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal cashbackAmount;
 
+    @Column(name = "percent", nullable = false, precision = 5, scale = 2)
+    private BigDecimal percent;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
