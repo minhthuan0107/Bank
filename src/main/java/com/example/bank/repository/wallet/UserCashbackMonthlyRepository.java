@@ -24,10 +24,16 @@ public interface UserCashbackMonthlyRepository extends JpaRepository<UserCashbac
     WHERE m.month = :month
     AND m.status = :status
     ORDER BY m.totalSpent DESC, m.userId DESC
-""")
+    """)
     Page<UserCashbackMonthly> findByMonthAndStatus(
             @Param("month") String month,
             @Param("status") CashbackStatus status,
+            Pageable pageable
+    );
+
+    Page<UserCashbackMonthly> findByUserIdAndStatus(
+            Long userId,
+            CashbackStatus status,
             Pageable pageable
     );
 
