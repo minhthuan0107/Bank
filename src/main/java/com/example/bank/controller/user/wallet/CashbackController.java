@@ -5,7 +5,7 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.response.wallet.user.CashbackDashboardResponse;
-import com.example.bank.service.wallet.user.CashbackService;
+import com.example.bank.service.cashback.user.CashbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

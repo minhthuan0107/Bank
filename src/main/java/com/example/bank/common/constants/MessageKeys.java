@@ -226,6 +226,14 @@ public class MessageKeys {
     public static final String CASHBACK_RULE_DELETED = "cashback.rule.deleted";
     public static final String CASHBACK_DASHBOARD_SUCCESS = "cashback.dashboard.success";
     public static final String CASHBACK_RULE_LIST_SUCCESS = "cashback.rule.list.success";
+    public static final String VALIDATION_USER_IDS_REQUIRED = "validation.user.ids.required";
+    public static final String VALIDATION_USER_ID_REQUIRED = "validation.user.id.required";
+
+
+    public static final String INVALID_MONTH = "invalid.month";
+    public static final String CASHBACK_REFUND_LIST_SUCCESS = "cashback.refund.list.success";
+    public static final String CASHBACK_BATCH_APPROVED = "cashback.batch.approved";
+
 
 
 }

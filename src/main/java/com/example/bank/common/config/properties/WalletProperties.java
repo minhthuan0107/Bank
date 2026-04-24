@@ -9,4 +9,5 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "wallet")
 public class WalletProperties {
     private int limit;
+    private int defaultPageSize;
 }

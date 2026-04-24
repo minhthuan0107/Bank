@@ -2,11 +2,14 @@ package com.example.bank.repository.user;
 
 import com.example.bank.entity.user.User;
 import com.example.bank.enums.user.AccountStatus;
+import com.example.bank.projection.UserNameProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -37,6 +40,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u.email FROM User u WHERE u.id = :userId")
     Optional<String> findEmailByUserId(Long userId);
 
+    List<UserNameProjection> findByIdIn(Collection<Long> ids);
 
 
 }
