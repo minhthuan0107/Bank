@@ -241,7 +241,7 @@ public class MessageKeys {
     public static final String VALIDATION_CARD_OPEN_LIMIT_INVALID = "validation.card.open.limit.invalid";
 
     public static final String USER_CARD_LIMIT_UPDATE_NOT_ALLOWED = "user.card.limit.update.not.allowed";
-
+    public static final String CARD_TRANSACTION_LIST_SUCCESS = "card.transaction.list.success";
 
 
 

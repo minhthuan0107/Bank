@@ -175,7 +175,6 @@ public class CardTransactionPersistenceService {
             card.setRemainingAmount(card.getRemainingAmount().subtract(amount));
             wallet.setTotalBalance(wallet.getTotalBalance().subtract(amount));
             wallet.setAllocatedBalance(wallet.getAllocatedBalance().subtract(amount));
-
         }
     }
 }

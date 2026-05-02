@@ -4,6 +4,8 @@ import com.example.bank.entity.wallet.CardTransaction;
 import com.example.bank.repository.UserSpentProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -64,6 +66,11 @@ public interface CardTransactionRepository extends JpaRepository<CardTransaction
     List<UserSpentProjection> sumAllUsers(
             @Param("start") Instant start,
             @Param("end") Instant end
+    );
+
+    Page<CardTransaction> findByUserId(
+            Long userId,
+            Pageable pageable
     );
 
 }

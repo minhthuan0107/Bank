@@ -5,6 +5,6 @@ public enum CardTransactionStatus {
     POSTED,   // trừ tiền thành công
     FAILED,
     REVERSED,
-    UNKNOWN,
+    UNKNOWN
 
 }
