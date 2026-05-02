@@ -244,5 +244,11 @@ public class MessageKeys {
     public static final String CARD_TRANSACTION_LIST_SUCCESS = "card.transaction.list.success";
 
 
+    public static final String DEPOSIT_INVALID_STATUS = "deposit.invalid.status";
+    public static final String DEPOSIT_STATUS_UPDATED = "deposit.status.updated";
+
+    public static final String ADMIN_DEPOSIT_ORDER_LIST_SUCCESS = "admin.deposit.order.list.success";
+
+
 
 }
