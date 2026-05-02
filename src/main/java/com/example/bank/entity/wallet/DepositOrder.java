@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 
 @Entity
@@ -77,6 +78,14 @@ public class DepositOrder extends BaseEntity {
         order.setStatus(DepositOrderStatus.PENDING);
 
         return order;
+    }
+
+    public void markSuccess() {
+        this.status = DepositOrderStatus.SUCCESS;
+    }
+
+    public void markFailed() {
+        this.status = DepositOrderStatus.FAILED;
     }
 
 }

@@ -58,4 +58,12 @@ public interface DepositOrderRepository extends JpaRepository<DepositOrder, Long
             WHERE d.userId = :userId
             """)
     DepositDashboardProjection getDashboard(@Param("userId") Long userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT d
+            FROM DepositOrder d
+            WHERE d.orderNo = :orderNo
+            """)
+    Optional<DepositOrder> findByOrderNoForUpdate(String orderNo);
 }
