@@ -13,7 +13,7 @@ import java.math.BigDecimal;
     @Setter
     public class CreateDepositSettingsRequest {
 
-        @NotBlank(message = "{" + MessageKeys.VALIDATION_CURRENCY_NOT_BLANK + "}")
+        @NotNull(message = "{" + MessageKeys.VALIDATION_CURRENCY_NOT_BLANK + "}")
         @Size(max = 10, message = "{" + MessageKeys.VALIDATION_CURRENCY_MAX_LENGTH + "}")
         @JsonProperty("currency")
         private Stablecoin currency;

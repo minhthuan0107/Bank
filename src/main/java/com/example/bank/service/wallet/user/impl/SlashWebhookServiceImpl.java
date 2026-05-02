@@ -119,26 +119,47 @@ public class SlashWebhookServiceImpl implements SlashWebhookService {
     }
 
     private CardTransactionStatus mapStatus(String status, String detailedStatus) {
-        if (status == null) return CardTransactionStatus.PENDING;
-        String s = status.toLowerCase();
-        String d = detailedStatus != null ? detailedStatus.toLowerCase() : "";
-        // ưu tiên detailedStatus trước
-        if ("reversed".equals(d)) {
-            return CardTransactionStatus.REVERSED;
-        }
-        if ("declined".equals(d)) {
-            return CardTransactionStatus.FAILED;
-        }
-        if ("settled".equals(d)) {
-            return CardTransactionStatus.POSTED;
-        }
-        if ("failed".equals(s)) {
-            return CardTransactionStatus.FAILED;
-        }
-        if ("pending".equals(d)) {
-            return CardTransactionStatus.PENDING;
-        }
-        return CardTransactionStatus.UNKNOWN;
+        String s = status != null ? status.trim().toLowerCase() : "";
+        String d = detailedStatus != null ? detailedStatus.trim().toLowerCase() : "";
+
+        // Ưu tiên detailedStatus trước
+        return switch (d) {
+            case "pending" ->
+                    CardTransactionStatus.PENDING;
+
+            case "settled" ->
+                    CardTransactionStatus.POSTED;
+
+            case "declined", "failed", "canceled" ->
+                    CardTransactionStatus.FAILED;
+
+            case "reversed" ->
+                    CardTransactionStatus.REVERSED;
+
+            // Hiện tại chưa xử lý refund/returned/dispute
+            case "refund", "returned", "dispute" ->
+                    CardTransactionStatus.UNKNOWN;
+
+            default -> switch (s) {
+                case "pending" ->
+                        CardTransactionStatus.PENDING;
+
+                case "settled" ->
+                        CardTransactionStatus.POSTED;
+
+                case "declined", "failed", "canceled" ->
+                        CardTransactionStatus.FAILED;
+
+                case "reversed" ->
+                        CardTransactionStatus.REVERSED;
+
+                case "refund", "returned", "dispute" ->
+                        CardTransactionStatus.UNKNOWN;
+
+                default ->
+                        CardTransactionStatus.UNKNOWN;
+            };
+        };
     }
 
 }
