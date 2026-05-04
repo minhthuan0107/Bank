@@ -275,7 +275,7 @@ public class CardServiceImpl implements CardService {
                 ));
 
         BigDecimal amount = card.getRemainingAmount();
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new WalletException(
                     MessageKeys.INVALID_BALANCE,
                     HttpStatus.CONFLICT
@@ -285,16 +285,24 @@ public class CardServiceImpl implements CardService {
         // 1. Block card bên Slash trước
         slashClient.lockCard(card.getSlashCardId());
 
-        // 2. Update local
-        wallet.setFrozenBalance(wallet.getFrozenBalance().add(amount));
-        wallet.setAllocatedBalance(wallet.getAllocatedBalance().subtract(amount));
+        // 2. Nếu remainingAmount > 0 thì mới chuyển allocated -> frozen
+        if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            wallet.setFrozenBalance(
+                    wallet.getFrozenBalance().add(amount)
+            );
 
-        card.setLockedAmount(amount);
-        card.setRemainingAmount(BigDecimal.ZERO);
-        // KHÔNG set allocatedAmount = 0
+            wallet.setAllocatedBalance(
+                    wallet.getAllocatedBalance().subtract(amount)
+            );
+
+            card.setLockedAmount(amount);
+            card.setRemainingAmount(BigDecimal.ZERO);
+
+            walletRepository.save(wallet);
+        }
+
+        // 3. Dù amount = 0 vẫn block thẻ bình thường
         card.setStatus(CardStatus.BLOCKED);
-
-        walletRepository.save(wallet);
         cardRepository.save(card);
     }
 
@@ -321,26 +329,31 @@ public class CardServiceImpl implements CardService {
                 ));
 
         BigDecimal amount = card.getLockedAmount();
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new WalletException(
                     MessageKeys.INVALID_BALANCE,
                     HttpStatus.CONFLICT
             );
         }
 
-        // 1. Unblock card bên Slash trước
         slashClient.unblockCard(card.getSlashCardId());
 
-        // 2. Update local
-        wallet.setFrozenBalance(wallet.getFrozenBalance().subtract(amount));
-        wallet.setAllocatedBalance(wallet.getAllocatedBalance().add(amount));
+        if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            wallet.setFrozenBalance(
+                    wallet.getFrozenBalance().subtract(amount)
+            );
 
-        card.setRemainingAmount(amount);
-        // allocatedAmount giữ nguyên
+            wallet.setAllocatedBalance(
+                    wallet.getAllocatedBalance().add(amount)
+            );
+
+            card.setRemainingAmount(amount);
+
+            walletRepository.save(wallet);
+        }
+
         card.setLockedAmount(BigDecimal.ZERO);
         card.setStatus(CardStatus.ACTIVE);
-
-        walletRepository.save(wallet);
         cardRepository.save(card);
     }
 

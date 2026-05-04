@@ -24,4 +24,6 @@ public interface CashbackRuleService {
             int page
     );
 
+    void rejectCashbackBatch (List<Long> userIds, String month);
+
 }

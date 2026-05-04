@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -147,6 +148,26 @@ public interface CardRepository extends JpaRepository<Card, Long> {
             @Param("toTime") Instant toTime,
             Pageable pageable
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT c
+        FROM Card c
+        WHERE c.id = :cardId
+        """)
+    Optional<Card> findByIdForUpdate(@Param("cardId") Long cardId);
+
+    @Query("""
+            SELECT c.id
+            FROM Card c
+            WHERE c.userId = :userId
+              AND c.status = :status
+            """)
+    List<Long> findIdsByUserIdAndStatus(
+            @Param("userId") Long userId,
+            @Param("status") CardStatus status
+    );
+
 
 
 }

@@ -1,5 +1,6 @@
 package com.example.bank.controller.user.auth;
 
+import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
@@ -14,6 +15,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -65,6 +68,21 @@ public class AuthController {
                         .message(i18n.getLocalizedMessage(MessageKeys.SESSION_REFRESHED))
                         .tokens(tokens)
                         .build()
+        );
+    }
+
+    @PostMapping("/logout")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        authService.logout(currentUser.getId());
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        null,
+                        null
+                )
         );
     }
 

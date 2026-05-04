@@ -12,7 +12,7 @@ public class MessageKeys {
 
 
 
-
+    public static final String CASHBACK_BATCH_REJECTED = "cashback.batch.rejected";
     public static final String AUTH_SESSION_NOT_FOUND = "auth.session.not-found";
     public static final String WRONG_CREDENTIALS = "auth.wrong-credentials";
     public static final String AUTHENTICATION_FAILED = "auth.authentication-failed";
@@ -248,6 +248,16 @@ public class MessageKeys {
     public static final String DEPOSIT_STATUS_UPDATED = "deposit.status.updated";
 
     public static final String ADMIN_DEPOSIT_ORDER_LIST_SUCCESS = "admin.deposit.order.list.success";
+    public static final String INVALID_CARD_ID = "invalid.card.id";
+    public static final String CARD_LOCKED_SUCCESS = "card.locked.success";
+    public static final String CARD_UNLOCKED_SUCCESS = "card.unlocked.success";
+
+    public static final String USER_LOCKED_SUCCESS = "user.locked.success";
+    public static final String USER_UNLOCKED_SUCCESS = "user.unlocked.success";
+
+    public static final String USER_ALREADY_LOCKED = "user.already.locked";
+    public static final String USER_ALREADY_ACTIVE = "user.already.active";
+    public static final String USER_STATUS_UPDATE_NOT_ALLOWED = "user.status.update.not.allowed";
 
 
 

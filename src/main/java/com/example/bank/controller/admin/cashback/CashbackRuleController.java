@@ -13,15 +13,12 @@ import com.example.bank.service.cashback.admin.CashbackRuleService;
 import com.example.bank.service.cashback.user.CashbackService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -72,7 +69,6 @@ public class CashbackRuleController {
             @PathVariable Long id
     ) {
         service.deleteCashbackRule(id);
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
@@ -112,6 +108,22 @@ public class CashbackRuleController {
         );
     }
 
+    @PostMapping("cashback/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> rejectCashbackBatch(
+            @RequestParam String month,
+            @Valid @RequestBody ApproveCashbackBatchRequest request
+    ) {
+        service.rejectCashbackBatch(request.userIds(), month);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CASHBACK_BATCH_REJECTED),
+                        null
+                )
+        );
+    }
+
     @GetMapping("cashback/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CashbackRefundPageResponse>> getPendingCashback(
@@ -121,7 +133,6 @@ public class CashbackRuleController {
 
         CashbackRefundPageResponse data =
                 service.getPendingCashback(month, page);
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
@@ -145,7 +156,6 @@ public class CashbackRuleController {
                         userId,
                         page
                 );
-
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
