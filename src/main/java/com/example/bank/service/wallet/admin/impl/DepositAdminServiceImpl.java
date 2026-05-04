@@ -9,6 +9,8 @@ import com.example.bank.dto.response.wallet.admin.DepositOrderPageAdminResponse;
 import com.example.bank.entity.wallet.DepositOrder;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.DepositOrderStatus;
+import com.example.bank.projection.UserNameProjection;
+import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.DepositOrderRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.service.wallet.admin.DepositAdminService;
@@ -21,7 +23,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +34,7 @@ public class DepositAdminServiceImpl implements DepositAdminService {
     private final DepositOrderRepository depositOrderRepository;
     private final WalletRepository walletRepository;
     private final WalletProperties walletProperties;
+    private final UserRepository userRepository;
 
 
     @Override
@@ -108,10 +114,29 @@ public class DepositAdminServiceImpl implements DepositAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public DepositOrderPageAdminResponse getAllDepositOrders(int page) {
+    public DepositOrderPageAdminResponse getAllDepositOrders(
+            String orderNo,
+            String username,
+            DepositOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        // normalize
+        orderNo = normalize(orderNo);
+        username = normalize(username);
+
         if (page < 0) {
             page = 0;
         }
+        // validate time
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new WalletException(
+                    MessageKeys.INVALID_TIME_RANGE,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
         int size = walletProperties.getDefaultPageSize();
 
         Pageable pageable = PageRequest.of(
@@ -121,9 +146,18 @@ public class DepositAdminServiceImpl implements DepositAdminService {
         );
 
         Page<DepositOrder> orders =
-                depositOrderRepository.findAll(pageable);
+                depositOrderRepository.searchAdminDepositOrders(
+                        orderNo,
+                        username,
+                        status,
+                        fromTime,
+                        toTime,
+                        pageable
+                );
 
-        if (orders.isEmpty()) {
+        List<DepositOrder> content = orders.getContent();
+
+        if (content.isEmpty()) {
             return DepositOrderPageAdminResponse.builder()
                     .items(List.of())
                     .page(page)
@@ -133,10 +167,24 @@ public class DepositAdminServiceImpl implements DepositAdminService {
                     .build();
         }
 
+        List<Long> userIds = content.stream()
+                .map(DepositOrder::getUserId)
+                .distinct()
+                .toList();
+
+        Map<Long, String> usernameMap = userRepository.findByIdIn(userIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        UserNameProjection::getId,
+                        UserNameProjection::getUsername
+                ));
+
         List<DepositOrderListAdminResponse> items =
-                orders.getContent()
-                        .stream()
-                        .map(DepositOrderListAdminResponse::from)
+                content.stream()
+                        .map(order -> DepositOrderListAdminResponse.from(
+                                order,
+                                usernameMap.get(order.getUserId())
+                        ))
                         .toList();
 
         return DepositOrderPageAdminResponse.builder()
@@ -146,5 +194,12 @@ public class DepositAdminServiceImpl implements DepositAdminService {
                 .totalSize(orders.getTotalElements())
                 .hasNext(orders.hasNext())
                 .build();
+    }
+
+    private String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

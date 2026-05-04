@@ -3,7 +3,7 @@ package com.example.bank.scheduler;
 import com.example.bank.entity.wallet.CashbackRule;
 import com.example.bank.entity.wallet.UserCashbackMonthly;
 import com.example.bank.enums.wallet.CashbackStatus;
-import com.example.bank.repository.UserSpentProjection;
+import com.example.bank.projection.UserSpentProjection;
 import com.example.bank.repository.wallet.UserCashbackMonthlyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -5,6 +5,7 @@ import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.admin.UpdateDepositStatusRequest;
 import com.example.bank.dto.response.wallet.admin.DepositOrderPageAdminResponse;
+import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.service.wallet.admin.DepositAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
 
 @RestController
 @RequiredArgsConstructor
@@ -43,10 +46,22 @@ public class AdminDepositController {
     @GetMapping("/orders")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DepositOrderPageAdminResponse>> getAllDepositOrders(
+            @RequestParam(name = "order_no", required = false) String orderNo,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) DepositOrderStatus status,
+            @RequestParam(name = "from_time", required = false) Instant fromTime,
+            @RequestParam(name = "to_time", required = false) Instant toTime,
             @RequestParam(defaultValue = "0") int page
     ) {
         DepositOrderPageAdminResponse response =
-                service.getAllDepositOrders(page);
+                service.getAllDepositOrders(
+                        orderNo,
+                        username,
+                        status,
+                        fromTime,
+                        toTime,
+                        page
+                );
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -56,4 +71,5 @@ public class AdminDepositController {
                 )
         );
     }
+
 }

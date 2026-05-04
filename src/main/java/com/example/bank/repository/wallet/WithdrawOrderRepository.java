@@ -29,11 +29,45 @@ public interface WithdrawOrderRepository extends JpaRepository<WithdrawOrder, Lo
             @Param("statuses") List<WithdrawOrderStatus> statuses
     );
 
-    boolean existsByUserIdAndStatusAndCreatedAtBetween(
-            Long userId,
-            WithdrawOrderStatus status,
-            Instant start,
-            Instant end
+    @Query("""
+        SELECT w
+        FROM WithdrawOrder w
+        JOIN User u ON u.id = w.userId
+        WHERE w.status IN :adminStatuses
+
+          AND (
+                :orderNo IS NULL
+                OR LOWER(w.orderNo) LIKE LOWER(CONCAT('%', :orderNo, '%'))
+          )
+
+          AND (
+                :username IS NULL
+                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :username, '%'))
+          )
+
+          AND (
+                :status IS NULL
+                OR w.status = :status
+          )
+
+          AND (
+                :fromTime IS NULL
+                OR w.createdAt >= :fromTime
+          )
+
+          AND (
+                :toTime IS NULL
+                OR w.createdAt <= :toTime
+          )
+        """)
+    Page<WithdrawOrder> searchAdminOrders(
+            @Param("adminStatuses") List<WithdrawOrderStatus> adminStatuses,
+            @Param("orderNo") String orderNo,
+            @Param("username") String username,
+            @Param("status") WithdrawOrderStatus status,
+            @Param("fromTime") Instant fromTime,
+            @Param("toTime") Instant toTime,
+            Pageable pageable
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

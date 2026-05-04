@@ -1,13 +1,18 @@
 package com.example.bank.service.wallet.admin.impl;
 
+import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.admin.UpdateWithdrawStatusRequest;
+import com.example.bank.dto.response.wallet.admin.WithdrawOrderListAdminResponse;
+import com.example.bank.dto.response.wallet.admin.WithdrawOrderPageAdminResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderListResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
+import com.example.bank.projection.UserNameProjection;
+import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.repository.wallet.WithdrawOrderRepository;
 import com.example.bank.service.wallet.admin.WithdrawAdminService;
@@ -20,14 +25,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class WithdrawAdminServiceImpl implements WithdrawAdminService {
     private final WithdrawOrderRepository withdrawOrderRepository;
     private final WalletRepository walletRepository;
-    private static final int DEFAULT_PAGE_SIZE = 10;
+    private final UserRepository userRepository;
+    private final WalletProperties walletProperties;
 
     @Transactional
     public void updateWithdrawStatus(
@@ -80,7 +89,20 @@ public class WithdrawAdminServiceImpl implements WithdrawAdminService {
     }
 
     @Override
-    public WithdrawOrderPageResponse getAllWithdrawOrders(int page) {
+    @Transactional(readOnly = true)
+    public WithdrawOrderPageAdminResponse getAllWithdrawOrders(
+            String orderNo,
+            String username,
+            WithdrawOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        // normalize
+        orderNo = normalize(orderNo);
+        username = normalize(username);
+
+        // validate page
         if (page < 0) {
             throw new WalletException(
                     MessageKeys.INVALID_PAGE_NUMBER,
@@ -88,11 +110,13 @@ public class WithdrawAdminServiceImpl implements WithdrawAdminService {
             );
         }
 
-        Pageable pageable = PageRequest.of(
-                page,
-                DEFAULT_PAGE_SIZE,
-                Sort.by(Sort.Direction.DESC, "createdAt")
-        );
+        // validate time
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new WalletException(
+                    MessageKeys.INVALID_TIME_RANGE,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
 
         List<WithdrawOrderStatus> adminStatuses = List.of(
                 WithdrawOrderStatus.PENDING_ADMIN,
@@ -100,16 +124,69 @@ public class WithdrawAdminServiceImpl implements WithdrawAdminService {
                 WithdrawOrderStatus.FAILED
         );
 
-        Page<WithdrawOrder> orders =
-                withdrawOrderRepository.findAdminOrders(adminStatuses, pageable);
+        // Nếu admin truyền status thì status đó phải thuộc nhóm admin được xem
+        if (status != null && !adminStatuses.contains(status)) {
+            throw new WalletException(
+                    MessageKeys.WITHDRAW_INVALID_STATUS,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
 
-        List<WithdrawOrderListResponse> items =
-                orders.getContent()
-                        .stream()
-                        .map(WithdrawOrderListResponse::from)
+        int size = walletProperties.getDefaultPageSize();
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+                        .and(Sort.by(Sort.Direction.DESC, "id"))
+        );
+
+
+
+        Page<WithdrawOrder> orders =
+                withdrawOrderRepository.searchAdminOrders(
+                        adminStatuses,
+                        orderNo,
+                        username,
+                        status,
+                        fromTime,
+                        toTime,
+                        pageable
+                );
+
+        List<WithdrawOrder> content = orders.getContent();
+
+        if (content.isEmpty()) {
+            return WithdrawOrderPageAdminResponse.builder()
+                    .items(List.of())
+                    .page(page)
+                    .size(pageable.getPageSize())
+                    .totalSize(0)
+                    .hasNext(false)
+                    .build();
+        }
+
+        List<Long> userIds = content.stream()
+                .map(WithdrawOrder::getUserId)
+                .distinct()
+                .toList();
+
+        Map<Long, String> usernameMap = userRepository.findByIdIn(userIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        UserNameProjection::getId,
+                        UserNameProjection::getUsername
+                ));
+
+        List<WithdrawOrderListAdminResponse> items =
+                content.stream()
+                        .map(order -> WithdrawOrderListAdminResponse.from(
+                                order,
+                                usernameMap.get(order.getUserId())
+                        ))
                         .toList();
 
-        return WithdrawOrderPageResponse.builder()
+        return WithdrawOrderPageAdminResponse.builder()
                 .items(items)
                 .page(page)
                 .size(pageable.getPageSize())
@@ -117,4 +194,13 @@ public class WithdrawAdminServiceImpl implements WithdrawAdminService {
                 .hasNext(orders.hasNext())
                 .build();
     }
+
+    private String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+
 }
