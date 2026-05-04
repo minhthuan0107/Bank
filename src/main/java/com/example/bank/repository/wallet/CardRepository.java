@@ -126,4 +126,27 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     @Query("SELECT c FROM Card c WHERE c.slashCardId = :slashCardId")
     Optional<Card> findBySlashCardIdForUpdate(@Param("slashCardId") String slashCardId);
 
+
+    @Query("""
+        SELECT c
+        FROM Card c
+        JOIN User u ON u.id = c.userId
+        WHERE (:cardNumber IS NULL OR c.last4 LIKE CONCAT('%', :cardNumber, '%'))
+          AND (:cardName IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :cardName, '%')))
+          AND (:username IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :username, '%')))
+          AND (:status IS NULL OR c.status = :status)
+          AND (:fromTime IS NULL OR c.createdAt >= :fromTime)
+          AND (:toTime IS NULL OR c.createdAt <= :toTime)
+        """)
+    Page<Card> searchAdminEntity(
+            @Param("cardNumber") String cardNumber,
+            @Param("cardName") String cardName,
+            @Param("username") String username,
+            @Param("status") CardStatus status,
+            @Param("fromTime") Instant fromTime,
+            @Param("toTime") Instant toTime,
+            Pageable pageable
+    );
+
+
 }

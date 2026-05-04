@@ -1,4 +1,4 @@
-package com.example.bank.repository;
+package com.example.bank.projection;
 
 import java.math.BigDecimal;
 

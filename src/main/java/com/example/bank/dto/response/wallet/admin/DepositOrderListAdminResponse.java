@@ -19,6 +19,8 @@ public class DepositOrderListAdminResponse {
     @JsonProperty("user_id")
     private Long userId;
 
+    private String username;
+
     private Stablecoin currency;
 
     private String network;
@@ -41,10 +43,12 @@ public class DepositOrderListAdminResponse {
     @JsonProperty("updated_at")
     private Instant updatedAt;
 
-    public static DepositOrderListAdminResponse from(DepositOrder order) {
+    public static DepositOrderListAdminResponse from(DepositOrder order,
+                                                     String username) {
         return DepositOrderListAdminResponse.builder()
                 .orderNo(order.getOrderNo())
                 .userId(order.getUserId())
+                .username(username)
                 .currency(order.getCurrency())
                 .network(order.getNetwork())
                 .amount(order.getAmount())

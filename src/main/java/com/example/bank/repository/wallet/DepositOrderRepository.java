@@ -66,4 +66,39 @@ public interface DepositOrderRepository extends JpaRepository<DepositOrder, Long
             WHERE d.orderNo = :orderNo
             """)
     Optional<DepositOrder> findByOrderNoForUpdate(String orderNo);
+
+
+    @Query("""
+        SELECT d
+        FROM DepositOrder d
+        JOIN User u ON u.id = d.userId
+        WHERE (
+                :orderNo IS NULL
+                OR LOWER(d.orderNo) LIKE LOWER(CONCAT('%', :orderNo, '%'))
+        )
+        AND (
+                :username IS NULL
+                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :username, '%'))
+        )
+        AND (
+                :status IS NULL
+                OR d.status = :status
+        )
+        AND (
+                :fromTime IS NULL
+                OR d.createdAt >= :fromTime
+        )
+        AND (
+                :toTime IS NULL
+                OR d.createdAt <= :toTime
+        )
+        """)
+    Page<DepositOrder> searchAdminDepositOrders(
+            @Param("orderNo") String orderNo,
+            @Param("username") String username,
+            @Param("status") DepositOrderStatus status,
+            @Param("fromTime") Instant fromTime,
+            @Param("toTime") Instant toTime,
+            Pageable pageable
+    );
 }

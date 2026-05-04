@@ -4,7 +4,9 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.wallet.admin.UpdateWithdrawStatusRequest;
+import com.example.bank.dto.response.wallet.admin.WithdrawOrderPageAdminResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
+import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import com.example.bank.service.wallet.admin.WithdrawAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("${api.prefix}/admin/withdraw")
@@ -40,11 +44,24 @@ public class WithdrawAdminController {
 
     @GetMapping("/orders")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<WithdrawOrderPageResponse>> getAllWithdrawOrders(
+    public ResponseEntity<ApiResponse<WithdrawOrderPageAdminResponse>> getAllWithdrawOrders(
+            @RequestParam(name = "order_no", required = false) String orderNo,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) WithdrawOrderStatus status,
+            @RequestParam(name = "from_time", required = false) Instant fromTime,
+            @RequestParam(name = "to_time", required = false) Instant toTime,
             @RequestParam(defaultValue = "0") int page
     ) {
-        WithdrawOrderPageResponse response =
-                service.getAllWithdrawOrders(page);
+        WithdrawOrderPageAdminResponse response =
+                service.getAllWithdrawOrders(
+                        orderNo,
+                        username,
+                        status,
+                        fromTime,
+                        toTime,
+                        page
+                );
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
