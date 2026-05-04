@@ -7,10 +7,12 @@ import com.example.bank.dto.request.wallet.admin.UpdateDepositStatusRequest;
 import com.example.bank.dto.response.wallet.admin.DepositOrderListAdminResponse;
 import com.example.bank.dto.response.wallet.admin.DepositOrderPageAdminResponse;
 import com.example.bank.entity.wallet.DepositOrder;
+import com.example.bank.entity.wallet.DepositOrderImage;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.projection.UserNameProjection;
 import com.example.bank.repository.user.UserRepository;
+import com.example.bank.repository.wallet.DepositOrderImageRepository;
 import com.example.bank.repository.wallet.DepositOrderRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.service.wallet.admin.DepositAdminService;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +38,7 @@ public class DepositAdminServiceImpl implements DepositAdminService {
     private final WalletRepository walletRepository;
     private final WalletProperties walletProperties;
     private final UserRepository userRepository;
+    private final DepositOrderImageRepository depositOrderImageRepository;
 
 
     @Override
@@ -129,6 +133,7 @@ public class DepositAdminServiceImpl implements DepositAdminService {
         if (page < 0) {
             page = 0;
         }
+
         // validate time
         if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
             throw new WalletException(
@@ -138,6 +143,10 @@ public class DepositAdminServiceImpl implements DepositAdminService {
         }
 
         int size = walletProperties.getDefaultPageSize();
+
+        if (size <= 0) {
+            size = 15;
+        }
 
         Pageable pageable = PageRequest.of(
                 page,
@@ -167,23 +176,49 @@ public class DepositAdminServiceImpl implements DepositAdminService {
                     .build();
         }
 
+        // ===== 1. Batch lấy username =====
         List<Long> userIds = content.stream()
                 .map(DepositOrder::getUserId)
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList();
 
-        Map<Long, String> usernameMap = userRepository.findByIdIn(userIds)
+        Map<Long, String> usernameMap = userIds.isEmpty()
+                ? Map.of()
+                : userRepository.findByIdIn(userIds)
                 .stream()
                 .collect(Collectors.toMap(
                         UserNameProjection::getId,
-                        UserNameProjection::getUsername
+                        UserNameProjection::getUsername,
+                        (oldValue, newValue) -> oldValue
                 ));
 
+        // ===== 2. Batch lấy ảnh theo deposit order id =====
+        List<Long> depositOrderIds = content.stream()
+                .map(DepositOrder::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, List<String>> imageUrlMap = depositOrderIds.isEmpty()
+                ? Map.of()
+                : depositOrderImageRepository.findByDepositOrderIds(depositOrderIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        DepositOrderImage::getDepositOrderId,
+                        Collectors.mapping(
+                                DepositOrderImage::getImageUrl,
+                                Collectors.toList()
+                        )
+                ));
+
+        // ===== 3. Map response =====
         List<DepositOrderListAdminResponse> items =
                 content.stream()
                         .map(order -> DepositOrderListAdminResponse.from(
                                 order,
-                                usernameMap.get(order.getUserId())
+                                usernameMap.get(order.getUserId()),
+                                imageUrlMap.getOrDefault(order.getId(), List.of())
                         ))
                         .toList();
 

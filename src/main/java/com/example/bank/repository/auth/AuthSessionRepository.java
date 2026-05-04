@@ -19,4 +19,19 @@ public interface AuthSessionRepository extends JpaRepository<AuthSession, Long> 
     @Modifying
     @Query("UPDATE AuthSession s SET s.lastUsedAt = :now WHERE s.id = :id")
     void updateLastUsedAtById(@Param("id") Long id, @Param("now") Instant now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        UPDATE AuthSession s
+        SET s.isRevoked = true,
+            s.revokedAt = :revokedAt
+        WHERE s.user.id = :userId
+          AND (s.isRevoked = false OR s.isRevoked IS NULL)
+        """)
+    int revokeAllByUserId(
+            @Param("userId") Long userId,
+            @Param("revokedAt") Instant revokedAt
+    );
+
+
 }

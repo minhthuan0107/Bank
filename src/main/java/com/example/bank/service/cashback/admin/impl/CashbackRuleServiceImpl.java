@@ -205,6 +205,40 @@ public class CashbackRuleServiceImpl implements CashbackRuleService {
         userCashbackMonthlyRepository.saveAll(monthlyList);
     }
 
+    @Transactional
+    public void rejectCashbackBatch(List<Long> userIds, String month) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+
+        List<UserCashbackMonthly> monthlyList =
+                userCashbackMonthlyRepository.findByUserIdInAndMonth(userIds, month);
+        Map<Long, UserCashbackMonthly> monthlyMap =
+                monthlyList.stream()
+                        .collect(Collectors.toMap(
+                                UserCashbackMonthly::getUserId,
+                                m -> m
+                        ));
+
+        for (Long userId : userIds) {
+            UserCashbackMonthly monthly = monthlyMap.get(userId);
+
+            if (monthly == null) {
+                continue;
+            }
+
+            if (monthly.getStatus() == CashbackStatus.APPROVED ||
+                    monthly.getStatus() == CashbackStatus.REJECTED) {
+                continue;
+            }
+
+            monthly.setStatus(CashbackStatus.REJECTED);
+            monthly.setApprovedAt(Instant.now());
+        }
+
+        userCashbackMonthlyRepository.saveAll(monthlyList);
+    }
+
 
 
     @Override
@@ -220,7 +254,6 @@ public class CashbackRuleServiceImpl implements CashbackRuleService {
                     HttpStatus.BAD_REQUEST
             );
         }
-        if (size <= 0) size = 15;
         // ===== 2. Query DB (snapshot ONLY) =====
         Page<UserCashbackMonthly> pageData =
                 userCashbackMonthlyRepository.findByMonthAndStatus(

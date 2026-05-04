@@ -44,4 +44,24 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean(name = "userCardSyncTaskExecutor")
+    public Executor userCardSyncTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+
+        // Đồng bộ card theo user thường không cần quá nhiều thread
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(10);
+
+        // Queue vừa phải, tránh dồn quá nhiều job lock/unlock card
+        executor.setQueueCapacity(200);
+
+        executor.setThreadNamePrefix("user-card-sync-");
+
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(60);
+
+        executor.initialize();
+        return executor;
+    }
 }

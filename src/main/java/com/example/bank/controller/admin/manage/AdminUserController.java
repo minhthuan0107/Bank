@@ -6,7 +6,7 @@ import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.cashback.admin.UpdateCardOpenLimitRequest;
 import com.example.bank.dto.response.cashback.admin.AdminUserPageResponse;
 import com.example.bank.dto.response.cashback.admin.AdminUserResponse;
-import com.example.bank.service.cashback.admin.AdminUserService;
+import com.example.bank.service.wallet.admin.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +21,7 @@ public class AdminUserController {
 
     private final AdminUserService adminUserService;
     private final LocalizationUtils i18n;
+
 
     /**
      * Admin lấy danh sách user
@@ -59,6 +60,47 @@ public class AdminUserController {
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.CARD_OPEN_LIMIT_UPDATE_SUCCESS),
                         data
+                )
+        );
+    }
+
+    /**
+     * Admin khóa user.
+     * Đồng thời revoke toàn bộ refresh token/session.
+     * Sau commit sẽ async khóa toàn bộ thẻ của user trên Slash.
+     */
+    @PatchMapping("/{userId}/lock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> lockUser(
+            @PathVariable Long userId
+    ) {
+        adminUserService.lockUser(userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.USER_LOCKED_SUCCESS),
+                        null
+                )
+        );
+    }
+
+    /**
+     * Admin mở khóa user.
+     * Sau commit sẽ async mở lại toàn bộ thẻ BLOCKED của user trên Slash.
+     */
+    @PatchMapping("/{userId}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> unlockUser(
+            @PathVariable Long userId
+    ) {
+        adminUserService.unlockUser(userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.USER_UNLOCKED_SUCCESS),
+                        null
                 )
         );
     }

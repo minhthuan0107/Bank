@@ -4,9 +4,11 @@ import com.example.bank.entity.user.User;
 import com.example.bank.enums.user.AccountStatus;
 import com.example.bank.projection.UserNameProjection;
 import io.lettuce.core.dynamic.annotation.Param;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -48,6 +50,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
             String roleName,
             Pageable pageable
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT u
+            FROM User u
+            WHERE u.id = :userId
+            """)
+    Optional<User> findByIdForUpdate(@Param("userId") Long userId);
 
 
 }

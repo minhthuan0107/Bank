@@ -9,6 +9,7 @@ import com.example.bank.common.exception.auth.AuthException;
 import com.example.bank.common.exception.auth.ForbiddenLoginException;
 import com.example.bank.common.exception.auth.OtpException;
 import com.example.bank.common.exception.auth.UnauthorizedException;
+import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.common.utils.HashUtils;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.auth.SignupRequest;
@@ -479,5 +480,12 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-
+    @Override
+    @Transactional
+    public void logout(Long userId) {
+        authSessionRepository.revokeAllByUserId(
+                userId,
+                Instant.now()
+        );
+    }
 }

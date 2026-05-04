@@ -1,4 +1,4 @@
-package com.example.bank.service.cashback.admin;
+package com.example.bank.service.wallet.admin;
 
 
 import com.example.bank.dto.request.cashback.admin.UpdateCardOpenLimitRequest;
@@ -15,4 +15,7 @@ public interface AdminUserService {
             Long userId,
             UpdateCardOpenLimitRequest request
     );
+    void lockUser(Long userId);
+
+    void unlockUser(Long userId);
 }

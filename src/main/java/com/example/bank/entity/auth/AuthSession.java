@@ -15,11 +15,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-/**
- * Bảng quản lý phiên đăng nhập (refresh token) của người dùng.
- * Mỗi user có thể có nhiều phiên (theo thiết bị / browser).
- * Dùng để kiểm soát token hợp lệ, thu hồi, và bảo mật.
- */
+
 public class AuthSession {
     /** Khóa chính tự tăng */
     @Id

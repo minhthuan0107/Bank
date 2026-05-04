@@ -10,4 +10,6 @@ public interface AuthService {
     void signup (SignupRequest request, HttpServletRequest httpRequest);
 
     TokenResponse refreshAccessToken(String refreshToken, HttpServletRequest request);
+
+    void logout(Long userId);
 }

@@ -15,4 +15,8 @@ public interface CardAdminService {
             Instant toTime,
             int page
     );
+
+    void lockCard(Long cardId);
+
+    void unlockCard(Long cardId);
 }

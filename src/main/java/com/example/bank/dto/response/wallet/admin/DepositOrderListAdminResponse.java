@@ -1,6 +1,7 @@
 package com.example.bank.dto.response.wallet.admin;
 
 import com.example.bank.entity.wallet.DepositOrder;
+import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
@@ -8,6 +9,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Builder
@@ -35,16 +37,22 @@ public class DepositOrderListAdminResponse {
     @JsonProperty("deposit_address")
     private String depositAddress;
 
-    private com.example.bank.enums.wallet.DepositOrderStatus status;
+    private DepositOrderStatus status;
 
     @JsonProperty("admin_note")
     private String adminNote;
 
+    @JsonProperty("image_urls")
+    private List<String> imageUrls;
+
     @JsonProperty("updated_at")
     private Instant updatedAt;
 
-    public static DepositOrderListAdminResponse from(DepositOrder order,
-                                                     String username) {
+    public static DepositOrderListAdminResponse from(
+            DepositOrder order,
+            String username,
+            List<String> imageUrls
+    ) {
         return DepositOrderListAdminResponse.builder()
                 .orderNo(order.getOrderNo())
                 .userId(order.getUserId())
@@ -57,6 +65,7 @@ public class DepositOrderListAdminResponse {
                 .depositAddress(order.getAddress())
                 .status(order.getStatus())
                 .adminNote(order.getAdminNote())
+                .imageUrls(imageUrls)
                 .updatedAt(order.getUpdatedAt())
                 .build();
     }

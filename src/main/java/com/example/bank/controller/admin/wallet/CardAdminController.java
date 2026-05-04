@@ -10,10 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 
@@ -56,6 +53,37 @@ public class CardAdminController {
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.CARD_LIST_SUCCESS),
                         response
+                )
+        );
+    }
+
+
+    @PostMapping("/{cardId}/lock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> lockCard(
+            @PathVariable Long cardId
+    ) {
+        cardService.lockCard(cardId);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_LOCKED_SUCCESS),
+                        null
+                )
+        );
+    }
+
+    @PostMapping("/{cardId}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> unlockCard(
+            @PathVariable Long cardId
+    ) {
+        cardService.unlockCard(cardId);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_UNLOCKED_SUCCESS),
+                        null
                 )
         );
     }
