@@ -259,6 +259,17 @@ public class MessageKeys {
     public static final String USER_ALREADY_ACTIVE = "user.already.active";
     public static final String USER_STATUS_UPDATE_NOT_ALLOWED = "user.status.update.not.allowed";
 
+    public static final String ANNOUNCEMENT_CREATED = "announcement.created";
+    public static final String VALIDATION_ANNOUNCEMENT_TITLE_REQUIRED = "validation.announcement.title.required";
+    public static final String VALIDATION_ANNOUNCEMENT_TITLE_MAX_LENGTH = "validation.announcement.title.max.length";
+    public static final String VALIDATION_ANNOUNCEMENT_CONTENT_REQUIRED = "validation.announcement.content.required";
+    public static final String VALIDATION_ANNOUNCEMENT_CONTENT_MAX_LENGTH = "validation.announcement.content.max.length";
+    public static final String VALIDATION_ANNOUNCEMENT_LINK_MAX_LENGTH = "validation.announcement.link.max.length";
+    public static final String ANNOUNCEMENT_UPDATED = "announcement.updated";
+    public static final String ANNOUNCEMENT_DELETED = "announcement.deleted";
+    public static final String ANNOUNCEMENT_NOT_FOUND = "announcement.not.found";
+    public static final String ANNOUNCEMENT_LIST_SUCCESS = "announcement.list.success";
+
 
 
 }
