@@ -2,6 +2,7 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
+import com.example.bank.projection.CashFlowProjection;
 import com.example.bank.repository.projection.WithdrawDashboardProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
@@ -12,6 +13,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -138,4 +140,61 @@ public interface WithdrawOrderRepository extends JpaRepository<WithdrawOrder, Lo
             WHERE w.userId = :userId
             """)
     WithdrawDashboardProjection getDashboard(Long userId);
+
+    @Query("""
+        SELECT COUNT(w)
+        FROM WithdrawOrder w
+        WHERE w.status = com.example.bank.enums.wallet.WithdrawOrderStatus.PENDING_ADMIN
+        """)
+    long countPendingAdminWithdraws();
+
+    @Query("""
+        SELECT COALESCE(SUM(w.amount), 0)
+        FROM WithdrawOrder w
+        WHERE w.status = com.example.bank.enums.wallet.WithdrawOrderStatus.PENDING_ADMIN
+        """)
+    BigDecimal sumPendingAdminWithdrawAmount();
+
+    @Query(value = """
+        SELECT DAYOFWEEK(w.updated_at) AS groupKey,
+               COALESCE(SUM(w.amount), 0) AS amount
+        FROM withdraw_orders w
+        WHERE w.status = 'SUCCESS'
+          AND w.updated_at >= :start
+          AND w.updated_at < :end
+        GROUP BY DAYOFWEEK(w.updated_at)
+        """, nativeQuery = true)
+    List<CashFlowProjection> sumWithdrawByWeek(
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+        SELECT DAY(w.updated_at) AS groupKey,
+               COALESCE(SUM(w.amount), 0) AS amount
+        FROM withdraw_orders w
+        WHERE w.status = 'SUCCESS'
+          AND w.updated_at >= :start
+          AND w.updated_at < :end
+        GROUP BY DAY(w.updated_at)
+        """, nativeQuery = true)
+    List<CashFlowProjection> sumWithdrawByMonth(
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+        SELECT MONTH(w.updated_at) AS groupKey,
+               COALESCE(SUM(w.amount), 0) AS amount
+        FROM withdraw_orders w
+        WHERE w.status = 'SUCCESS'
+          AND w.updated_at >= :start
+          AND w.updated_at < :end
+        GROUP BY MONTH(w.updated_at)
+        """, nativeQuery = true)
+    List<CashFlowProjection> sumWithdrawByYear(
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
 }

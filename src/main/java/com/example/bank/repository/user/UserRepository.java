@@ -59,5 +59,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
             """)
     Optional<User> findByIdForUpdate(@Param("userId") Long userId);
 
+    @Query("""
+        SELECT COUNT(u)
+        FROM User u
+        WHERE u.role.name = 'USER'
+          AND u.status <> com.example.bank.enums.user.AccountStatus.LOCKED
+        """)
+    long countNormalUsers();
+
+
 
 }
