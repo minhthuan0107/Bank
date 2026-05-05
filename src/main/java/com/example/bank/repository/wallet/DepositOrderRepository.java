@@ -2,6 +2,7 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.DepositOrder;
 import com.example.bank.enums.wallet.DepositOrderStatus;
+import com.example.bank.projection.CashFlowProjection;
 import com.example.bank.repository.projection.DepositDashboardProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
@@ -12,7 +13,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -101,4 +104,61 @@ public interface DepositOrderRepository extends JpaRepository<DepositOrder, Long
             @Param("toTime") Instant toTime,
             Pageable pageable
     );
+
+    @Query("""
+        SELECT COUNT(d)
+        FROM DepositOrder d
+        WHERE d.status = com.example.bank.enums.wallet.DepositOrderStatus.PENDING
+        """)
+    long countPendingDeposits();
+
+    @Query("""
+        SELECT COALESCE(SUM(d.expectedAmount), 0)
+        FROM DepositOrder d
+        WHERE d.status = com.example.bank.enums.wallet.DepositOrderStatus.PENDING
+        """)
+    BigDecimal sumPendingDepositAmount();
+
+    @Query(value = """
+        SELECT DAYOFWEEK(d.updated_at) AS groupKey,
+               COALESCE(SUM(d.expected_amount), 0) AS amount
+        FROM deposit_orders d
+        WHERE d.status = 'SUCCESS'
+          AND d.updated_at >= :start
+          AND d.updated_at < :end
+        GROUP BY DAYOFWEEK(d.updated_at)
+        """, nativeQuery = true)
+    List<CashFlowProjection> sumDepositByWeek(
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+        SELECT DAY(d.updated_at) AS groupKey,
+               COALESCE(SUM(d.expected_amount), 0) AS amount
+        FROM deposit_orders d
+        WHERE d.status = 'SUCCESS'
+          AND d.updated_at >= :start
+          AND d.updated_at < :end
+        GROUP BY DAY(d.updated_at)
+        """, nativeQuery = true)
+    List<CashFlowProjection> sumDepositByMonth(
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+        SELECT MONTH(d.updated_at) AS groupKey,
+               COALESCE(SUM(d.expected_amount), 0) AS amount
+        FROM deposit_orders d
+        WHERE d.status = 'SUCCESS'
+          AND d.updated_at >= :start
+          AND d.updated_at < :end
+        GROUP BY MONTH(d.updated_at)
+        """, nativeQuery = true)
+    List<CashFlowProjection> sumDepositByYear(
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
 }

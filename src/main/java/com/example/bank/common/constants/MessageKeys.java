@@ -269,6 +269,8 @@ public class MessageKeys {
     public static final String ANNOUNCEMENT_DELETED = "announcement.deleted";
     public static final String ANNOUNCEMENT_NOT_FOUND = "announcement.not.found";
     public static final String ANNOUNCEMENT_LIST_SUCCESS = "announcement.list.success";
+    public static final String ADMIN_DASHBOARD_SUMMARY_SUCCESS = "admin.dashboard.summary.success";
+    public static final String ADMIN_DASHBOARD_CASH_FLOW_SUCCESS = "admin.dashboard.cash.flow.success";
 
 
 

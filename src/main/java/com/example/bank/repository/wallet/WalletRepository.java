@@ -71,6 +71,13 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
             """)
     WalletSummaryProjection getWalletSummary(Long userId);
 
+    @Query("""
+        SELECT COALESCE(SUM(w.totalBalance), 0)
+        FROM Wallet w
+        """)
+    BigDecimal sumTotalWalletBalance();
+
+
 
 
 
