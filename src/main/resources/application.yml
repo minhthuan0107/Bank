@@ -58,6 +58,7 @@ aws:
 
 slash:
   base-url: https://api.slash.com
+  vault-base-url: https://vault.slash.com
   api:
     key: ${SLASH_API_KEY}
   account:

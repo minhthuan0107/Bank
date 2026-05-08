@@ -7,6 +7,7 @@ import com.example.bank.dto.request.wallet.s3.SlashCreateCardRequest;
 import com.example.bank.dto.request.wallet.s3.SlashUpdateLimitRequest;
 import com.example.bank.dto.response.slash.SlashCardDetailResponse;
 import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
+import com.example.bank.dto.response.wallet.user.SlashCardSensitiveDetailResponse;
 import com.example.bank.dto.response.wallet.user.SlashTransactionResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -318,6 +319,74 @@ public class SlashClient {
                     + props.getEndpoints().getGetTransaction()
                     .replace("{id}", id);
         return callSlash(url, id);
+    }
+
+    public SlashCardSensitiveDetailResponse getCardSensitiveDetail(String cardId) {
+        if (cardId == null || cardId.isBlank()) {
+            throw new WalletException(
+                    MessageKeys.SLASH_CARD_ID_INVALID,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        String url = UriComponentsBuilder
+                .fromHttpUrl(props.getVaultBaseUrl() + props.getEndpoints().getGetCard())
+                .queryParam("include_pan", "true")
+                .queryParam("include_cvv", "true")
+                .buildAndExpand(cardId)
+                .toUriString();
+
+        try {
+            SlashCardSensitiveDetailResponse response = webClient.get()
+                    .uri(url)
+                    .header("X-API-Key", props.getApi().getKey())
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, clientResponse ->
+                            clientResponse.bodyToMono(String.class)
+                                    .defaultIfEmpty("[empty body]")
+                                    .flatMap(errBody -> {
+                                        log.error(
+                                                "SLASH-GET-CARD-SENSITIVE-ERROR cardId={} status={} body={}",
+                                                cardId,
+                                                clientResponse.statusCode(),
+                                                errBody
+                                        );
+
+                                        return Mono.error(new WalletException(
+                                                MessageKeys.SLASH_GET_CARD_SENSITIVE_FAILED,
+                                                HttpStatus.BAD_GATEWAY
+                                        ));
+                                    })
+                    )
+                    .bodyToMono(SlashCardSensitiveDetailResponse.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .block();
+
+            if (response == null) {
+                throw new WalletException(
+                        MessageKeys.SLASH_GET_CARD_SENSITIVE_FAILED,
+                        HttpStatus.BAD_GATEWAY
+                );
+            }
+
+            return response;
+
+        } catch (WalletException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error(
+                    "SLASH-GET-CARD-SENSITIVE-ERROR cardId={} err={}",
+                    cardId,
+                    e.getMessage(),
+                    e
+            );
+
+            throw new WalletException(
+                    MessageKeys.SLASH_GET_CARD_SENSITIVE_FAILED,
+                    HttpStatus.BAD_GATEWAY
+            );
+        }
     }
 
 

@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class SlashProperties {
 
     private String baseUrl;
+    private String vaultBaseUrl;
 
     private Api api;
     private Account account;

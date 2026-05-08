@@ -6,7 +6,9 @@ import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.response.wallet.user.CardDashboardResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
+import com.example.bank.dto.response.wallet.user.CardSensitiveDetailResponse;
 import com.example.bank.enums.wallet.CardStatus;
+import com.example.bank.service.wallet.user.CardSensitiveDetailService;
 import com.example.bank.service.wallet.user.CardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,7 @@ public class CardController {
 
     private final CardService cardService;
     private final LocalizationUtils i18n;
+    private final CardSensitiveDetailService cardSensitiveDetailService;
 
     @PostMapping("/{cardId}/lock")
     @PreAuthorize("hasRole('USER')")
@@ -110,6 +113,25 @@ public class CardController {
                         i18n.getLocalizedMessage(MessageKeys.CARD_DASHBOARD_SUCCESS),
                         response
                 )
+        );
+    }
+
+    @GetMapping("/{cardId}/sensitive-details")
+    @PreAuthorize("hasRole('USER')")
+    public ApiResponse<CardSensitiveDetailResponse> getSensitiveDetail(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            @PathVariable Long cardId
+    ) {
+        CardSensitiveDetailResponse data =
+                cardSensitiveDetailService.getSensitiveDetail(
+                        currentUser.getId(),
+                        cardId
+                );
+
+        return ApiResponse.success(
+                HttpStatus.OK.value(),
+                MessageKeys.CARD_SENSITIVE_DETAIL_SUCCESS,
+                data
         );
     }
 }
