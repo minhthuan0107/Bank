@@ -271,6 +271,12 @@ public class MessageKeys {
     public static final String ANNOUNCEMENT_LIST_SUCCESS = "announcement.list.success";
     public static final String ADMIN_DASHBOARD_SUMMARY_SUCCESS = "admin.dashboard.summary.success";
     public static final String ADMIN_DASHBOARD_CASH_FLOW_SUCCESS = "admin.dashboard.cash.flow.success";
+    public static final String CARD_SENSITIVE_DETAIL_SUCCESS = "card.sensitive.detail.success";
+    public static final String CARD_NOT_FOUND_OR_FORBIDDEN = "card.not_found_or_forbidden";
+    public static final String CARD_SLASH_ID_NOT_FOUND = "card.slash_id.not_found";
+    public static final String SLASH_GET_CARD_SENSITIVE_FAILED = "slash.card.sensitive.failed";
+    public static final String SLASH_CARD_ID_INVALID = "slash.card_id.invalid";
+    public static final String USER_ASSET_ALLOCATION_SUCCESS = "user.asset_allocation.success";
 
 
 

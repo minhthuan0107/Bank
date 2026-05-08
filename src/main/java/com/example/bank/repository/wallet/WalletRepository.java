@@ -2,6 +2,7 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.Stablecoin;
+import com.example.bank.projection.WalletAssetAllocationProjection;
 import com.example.bank.repository.projection.WalletSummaryProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
@@ -76,6 +77,22 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
         FROM Wallet w
         """)
     BigDecimal sumTotalWalletBalance();
+
+
+    @Query(value = """
+        SELECT 
+            COALESCE(w.total_balance, 0) AS totalBalance,
+            COALESCE(w.allocated_balance, 0) AS allocatedBalance,
+            COALESCE(w.frozen_balance, 0) AS frozenBalance,
+            COALESCE(w.available_balance, 0) AS availableBalance
+        FROM wallets w
+        WHERE w.user_id = :userId
+          AND w.status = 'ACTIVE'
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<WalletAssetAllocationProjection> findAssetAllocationByUserId(
+            @Param("userId") Long userId
+    );
 
 
 
