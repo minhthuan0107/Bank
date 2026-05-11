@@ -93,12 +93,4 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     Optional<WalletAssetAllocationProjection> findAssetAllocationByUserId(
             @Param("userId") Long userId
     );
-
-
-
-
-
-
-
-
 }

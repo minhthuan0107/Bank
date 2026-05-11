@@ -4,7 +4,9 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.otp.OtpRequest;
+import com.example.bank.dto.request.wallet.user.ForgotPasswordOtpRequest;
 import com.example.bank.dto.response.otp.OtpEnqueuedResponse;
+import com.example.bank.service.otp.ForgotPasswordService;
 import com.example.bank.service.otp.OtpService;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OtpController {
     private final LocalizationUtils i18n;
     private final OtpService otpService;
+    private final ForgotPasswordService forgotPasswordService;
     // Api gửi mã OTP đến tài khoản người dùng
     @PermitAll
     @PostMapping(value = "/request")
@@ -41,5 +44,23 @@ public class OtpController {
 
     }
 
+    /**
+     * Gửi OTP reset password.
+     * FE chỉ gửi username, backend tự lấy email đã đăng ký để gửi OTP.
+     */
+    @PermitAll
+    @PostMapping("/request-otp")
+    public ResponseEntity<ApiResponse<Void>> requestResetOtp(
+            @Valid @RequestBody ForgotPasswordOtpRequest requestDto,
+            HttpServletRequest request
+    ) {
+        forgotPasswordService.requestResetOtp(requestDto, request);
 
+        return ResponseEntity.ok(
+                ApiResponse.ok(
+                        HttpStatus.OK.value(),
+                        null
+                )
+        );
+    }
 }

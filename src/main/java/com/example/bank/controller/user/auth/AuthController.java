@@ -6,9 +6,11 @@ import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
 import com.example.bank.dto.request.auth.SigninRequest;
 import com.example.bank.dto.request.auth.SignupRequest;
+import com.example.bank.dto.request.wallet.user.ResetPasswordRequest;
 import com.example.bank.dto.response.auth.SigninResponse;
 import com.example.bank.dto.response.auth.TokenResponse;
 import com.example.bank.service.auth.user.impl.AuthServiceImpl;
+import com.example.bank.service.otp.ForgotPasswordService;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthServiceImpl authService;
     private final LocalizationUtils i18n;
+    private final ForgotPasswordService forgotPasswordService;
     //Api đăng nhập
     @PermitAll
     @PostMapping(value = "/signin")
@@ -81,6 +84,22 @@ public class AuthController {
                 ApiResponse.success(
                         HttpStatus.OK.value(),
                         null,
+                        null
+                )
+        );
+    }
+
+    @PermitAll
+    @PostMapping("/reset")
+    public ResponseEntity<ApiResponse> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest requestDto
+    ) {
+        forgotPasswordService.resetPassword(requestDto);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.RESET_PASSWORD_SUCCESS),
                         null
                 )
         );

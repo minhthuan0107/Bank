@@ -1,7 +1,10 @@
 package com.example.bank.controller.admin.auth;
 
 import com.example.bank.common.constants.MessageKeys;
+import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
+import com.example.bank.dto.request.auth.AdminLoginOtpRequest;
+import com.example.bank.dto.request.auth.AdminSigninRequest;
 import com.example.bank.dto.request.auth.SigninRequest;
 import com.example.bank.dto.response.auth.SigninResponse;
 import com.example.bank.dto.response.auth.TokenResponse;
@@ -22,17 +25,45 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("${api.prefix}/admin/auth")
 @RequiredArgsConstructor
 public class AuthAdminController {
-    private final AuthAdminService authService;
+    private final AuthAdminService adminAuthService;
     private final LocalizationUtils i18n;
 
-    //Api đăng nhập
+    /**
+     * API lấy OTP đăng nhập admin.
+     * FE gửi username, backend tự lấy email admin để gửi OTP.
+     */
     @PermitAll
-    @PostMapping(value = "/signin")
-    public ResponseEntity<SigninResponse> signin(@Valid @RequestBody SigninRequest requestDto,
-                                                 HttpServletRequest request) {
-        // gọi service xác thực + sinh token
-        TokenResponse tokens = authService.signin(requestDto.getUsername(), requestDto.getPassword(), request);
-        // trả response thống nhất
+    @PostMapping("/request-login-otp")
+    public ResponseEntity<ApiResponse> requestAdminLoginOtp(
+            @Valid @RequestBody AdminLoginOtpRequest requestDto,
+            HttpServletRequest request
+    ) {
+        adminAuthService.requestLoginOtp(requestDto, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.ok(
+                        HttpStatus.OK.value(),
+                        null
+                )
+        );
+    }
+
+    /**
+     * API đăng nhập admin bằng username + password + OTP.
+     */
+    @PermitAll
+    @PostMapping("/signin")
+    public ResponseEntity<SigninResponse> adminSignin(
+            @Valid @RequestBody AdminSigninRequest requestDto,
+            HttpServletRequest request
+    ) {
+        TokenResponse tokens = adminAuthService.signin(
+                requestDto.getUsername(),
+                requestDto.getPassword(),
+                requestDto.getOtp(),
+                request
+        );
+
         return ResponseEntity.ok(
                 SigninResponse.builder()
                         .status(HttpStatus.OK.value())
