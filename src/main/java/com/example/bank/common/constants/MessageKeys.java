@@ -278,6 +278,21 @@ public class MessageKeys {
     public static final String SLASH_CARD_ID_INVALID = "slash.card_id.invalid";
     public static final String USER_ASSET_ALLOCATION_SUCCESS = "user.asset_allocation.success";
     public static final String USER_DASHBOARD_CASH_FLOW_SUCCESS = "user.dashboard.cash_flow.success";
+    public static final String VALIDATION_USERNAME_SIZE = "validation.username.size";
+
+    public static final String VALIDATION_OTP_NOT_BLANK = "validation.otp.not_blank";
+    public static final String VALIDATION_NEW_PASSWORD_NOT_BLANK = "validation.new_password.not_blank";
+    public static final String VALIDATION_PASSWORD_SIZE = "validation.password.size";
+    public static final String VALIDATION_PASSWORD_WEAK = "validation.password.weak";
+    public static final String VALIDATION_CONFIRM_NEW_PASSWORD_NOT_BLANK = "validation.confirm_new_password.not_blank";
+    public static final String RESET_PASSWORD_SUCCESS = "reset_password.success";
+    public static final String RESET_PASSWORD_INVALID_REQUEST = "reset_password.invalid_request";
+    public static final String PASSWORD_CONFIRM_NOT_MATCH = "password.confirm.not_match";
+    public static final String USER_ACCOUNT_NOT_ACTIVE = "user.account.not_active";
+    public static final String ADMIN_LOGIN_OTP_EXPIRED_OR_NOT_FOUND = "admin.login.otp.expired_or_not_found";
+
+
+
 
 
 
