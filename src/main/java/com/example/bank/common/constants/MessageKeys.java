@@ -277,6 +277,7 @@ public class MessageKeys {
     public static final String SLASH_GET_CARD_SENSITIVE_FAILED = "slash.card.sensitive.failed";
     public static final String SLASH_CARD_ID_INVALID = "slash.card_id.invalid";
     public static final String USER_ASSET_ALLOCATION_SUCCESS = "user.asset_allocation.success";
+    public static final String USER_DASHBOARD_CASH_FLOW_SUCCESS = "user.dashboard.cash_flow.success";
 
 
 

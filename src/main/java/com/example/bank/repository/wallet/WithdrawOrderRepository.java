@@ -197,4 +197,52 @@ public interface WithdrawOrderRepository extends JpaRepository<WithdrawOrder, Lo
             @Param("end") Instant end
     );
 
+    @Query(value = """
+    SELECT DAYOFWEEK(w.updated_at) AS groupKey,
+           COALESCE(SUM(w.amount), 0) AS amount
+    FROM withdraw_orders w
+    WHERE w.user_id = :userId
+      AND w.status = 'SUCCESS'
+      AND w.updated_at >= :start
+      AND w.updated_at < :end
+    GROUP BY DAYOFWEEK(w.updated_at)
+    """, nativeQuery = true)
+    List<CashFlowProjection> sumUserWithdrawByWeek(
+            @Param("userId") Long userId,
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+    SELECT DAY(w.updated_at) AS groupKey,
+           COALESCE(SUM(w.amount), 0) AS amount
+    FROM withdraw_orders w
+    WHERE w.user_id = :userId
+      AND w.status = 'SUCCESS'
+      AND w.updated_at >= :start
+      AND w.updated_at < :end
+    GROUP BY DAY(w.updated_at)
+    """, nativeQuery = true)
+    List<CashFlowProjection> sumUserWithdrawByMonth(
+            @Param("userId") Long userId,
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+    SELECT MONTH(w.updated_at) AS groupKey,
+           COALESCE(SUM(w.amount), 0) AS amount
+    FROM withdraw_orders w
+    WHERE w.user_id = :userId
+      AND w.status = 'SUCCESS'
+      AND w.updated_at >= :start
+      AND w.updated_at < :end
+    GROUP BY MONTH(w.updated_at)
+    """, nativeQuery = true)
+    List<CashFlowProjection> sumUserWithdrawByYear(
+            @Param("userId") Long userId,
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
 }

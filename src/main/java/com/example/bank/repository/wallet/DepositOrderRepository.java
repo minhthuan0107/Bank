@@ -161,4 +161,53 @@ public interface DepositOrderRepository extends JpaRepository<DepositOrder, Long
             @Param("end") Instant end
     );
 
+
+    @Query(value = """
+    SELECT DAYOFWEEK(d.updated_at) AS groupKey,
+           COALESCE(SUM(d.expected_amount), 0) AS amount
+    FROM deposit_orders d
+    WHERE d.user_id = :userId
+      AND d.status = 'SUCCESS'
+      AND d.updated_at >= :start
+      AND d.updated_at < :end
+    GROUP BY DAYOFWEEK(d.updated_at)
+    """, nativeQuery = true)
+    List<CashFlowProjection> sumUserDepositByWeek(
+            @Param("userId") Long userId,
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+    SELECT DAY(d.updated_at) AS groupKey,
+           COALESCE(SUM(d.expected_amount), 0) AS amount
+    FROM deposit_orders d
+    WHERE d.user_id = :userId
+      AND d.status = 'SUCCESS'
+      AND d.updated_at >= :start
+      AND d.updated_at < :end
+    GROUP BY DAY(d.updated_at)
+    """, nativeQuery = true)
+    List<CashFlowProjection> sumUserDepositByMonth(
+            @Param("userId") Long userId,
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
+    @Query(value = """
+    SELECT MONTH(d.updated_at) AS groupKey,
+           COALESCE(SUM(d.expected_amount), 0) AS amount
+    FROM deposit_orders d
+    WHERE d.user_id = :userId
+      AND d.status = 'SUCCESS'
+      AND d.updated_at >= :start
+      AND d.updated_at < :end
+    GROUP BY MONTH(d.updated_at)
+    """, nativeQuery = true)
+    List<CashFlowProjection> sumUserDepositByYear(
+            @Param("userId") Long userId,
+            @Param("start") Instant start,
+            @Param("end") Instant end
+    );
+
 }
