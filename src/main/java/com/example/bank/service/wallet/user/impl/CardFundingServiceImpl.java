@@ -1,13 +1,17 @@
 package com.example.bank.service.wallet.user.impl;
 
+import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.config.slash.SlashClient;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
+import com.example.bank.dto.response.wallet.user.CardFundingTransactionItemResponse;
+import com.example.bank.dto.response.wallet.user.CardFundingTransactionPageResponse;
 import com.example.bank.entity.wallet.Card;
 import com.example.bank.entity.wallet.CardFundingTransaction;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.enums.wallet.CardTxnType;
+import com.example.bank.repository.projection.CardFundingTransactionProjection;
 import com.example.bank.repository.wallet.CardFundingTransactionRepository;
 import com.example.bank.repository.wallet.CardRepository;
 import com.example.bank.repository.wallet.WalletRepository;
@@ -17,10 +21,13 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 
 @Service
@@ -32,6 +39,7 @@ public class CardFundingServiceImpl implements CardFundingService {
     private final CardRepository cardRepository;
     private final CardFundingTransactionRepository txnRepo;
     private final SlashClient slashClient;
+    private final WalletProperties walletProperties;
 
     @Transactional
     @Override
@@ -231,6 +239,75 @@ public class CardFundingServiceImpl implements CardFundingService {
             txnRepo.save(txn);
             throw e;
         }
+    }
+
+    @Override
+    public CardFundingTransactionPageResponse getUserFundingTransactions(
+            Long userId,
+            String last4,
+            CardTxnType type,
+            CardTxnStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        int safePage = Math.max(page, 0);
+
+        String normalizedLast4 = normalizeLast4(last4);
+
+        Page<CardFundingTransactionProjection> result =
+               txnRepo.searchUserFundingTransactions(
+                        userId,
+                        normalizedLast4,
+                        type,
+                        status,
+                        fromTime,
+                        toTime,
+                        PageRequest.of(safePage, walletProperties.getLimit())
+                );
+
+        return CardFundingTransactionPageResponse.builder()
+                .items(
+                        result.getContent()
+                                .stream()
+                                .map(this::toItem)
+                                .toList()
+                )
+                .page(safePage)
+                .size(walletProperties.getLimit())
+                .totalSize(result.getTotalElements())
+                .hasNext(result.hasNext())
+                .build();
+    }
+
+    private CardFundingTransactionItemResponse toItem(CardFundingTransactionProjection p) {
+        return CardFundingTransactionItemResponse.builder()
+                .id(p.getId())
+                .cardId(maskCardId(p.getBin(), p.getLast4()))
+                .type(p.getType())
+                .amount(p.getAmount())
+                .status(p.getStatus())
+                .createdAt(p.getCreatedAt())
+                .build();
+    }
+
+    private String normalizeLast4(String last4) {
+        if (last4 == null || last4.isBlank()) {
+            return null;
+        }
+
+        return last4.trim();
+    }
+
+    private String maskCardId(String bin, String last4) {
+        String safeBin = bin == null ? "" : bin;
+        String safeLast4 = last4 == null ? "" : last4;
+
+        if (safeBin.isBlank() && safeLast4.isBlank()) {
+            return "****";
+        }
+
+        return safeBin + "****" + safeLast4;
     }
 }
 
