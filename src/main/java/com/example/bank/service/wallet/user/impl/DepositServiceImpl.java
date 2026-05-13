@@ -14,11 +14,13 @@ import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.user.AccountStatus;
 import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.enums.wallet.Stablecoin;
+import com.example.bank.event.DepositOrderCreatedEvent;
 import com.example.bank.repository.projection.DepositDashboardProjection;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.*;
 import com.example.bank.service.wallet.user.DepositService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -45,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class DepositServiceImpl implements DepositService {
 
-    private final DepositSettingsRepository depositSettingsRepository;
+    private final WalletCurrencySettingsRepository depositSettingsRepository;
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
     private final DepositAddressRepository depositAddressRepository;
@@ -63,11 +65,12 @@ public class DepositServiceImpl implements DepositService {
             "image/png",
             "image/webp"
     );
+    private final ApplicationEventPublisher applicationEventPublisher;
 
 
     @Override
     public DepositConfigResponse getDepositConfig(Stablecoin currency , Long userId) {
-        DepositSettings settings = depositSettingsRepository
+        WalletCurrencySettings settings = depositSettingsRepository
                 .findByCurrencyAndStatus(currency, "ACTIVE")
                 .orElseThrow(() ->
                         new WalletException(
@@ -87,9 +90,8 @@ public class DepositServiceImpl implements DepositService {
 
         return DepositConfigResponse.builder()
                 .availableBalance(wallet.getAvailableBalance()) // số dư thực tế có thể dùng
-                .feePercent(settings.getFeePercent())
-                .minAmount(settings.getMinAmount())
-                .maxAmount(settings.getMaxAmount())
+                .feePercent(settings.getDepositFeePercent())
+                .minAmount(settings.getMinDepositAmount())
                 .build();
     }
 
@@ -99,7 +101,7 @@ public class DepositServiceImpl implements DepositService {
                 ? request.getNetwork()
                 : "TRC20";
 
-        DepositSettings settings = depositSettingsRepository
+        WalletCurrencySettings settings = depositSettingsRepository
                 .findByCurrency(request.getCurrency())
                 .orElseThrow(() ->
                         new WalletException(
@@ -108,7 +110,7 @@ public class DepositServiceImpl implements DepositService {
                         )
                 );
 
-        if (request.getAmount().compareTo(settings.getMinAmount()) < 0) {
+        if (request.getAmount().compareTo(settings.getMinDepositAmount()) < 0) {
             throw new WalletException(
                     MessageKeys.DEPOSIT_AMOUNT_BELOW_MIN,
                     HttpStatus.BAD_REQUEST
@@ -133,7 +135,7 @@ public class DepositServiceImpl implements DepositService {
         // Tính tiền phí
         BigDecimal fee =
                 request.getAmount()
-                        .multiply(settings.getFeePercent())
+                        .multiply(settings.getDepositFeePercent())
                         .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
 
         //Số tiền nhận được
@@ -168,7 +170,7 @@ public class DepositServiceImpl implements DepositService {
 
         checkDepositLimit(userId);
 
-        DepositSettings settings = depositSettingsRepository
+        WalletCurrencySettings settings = depositSettingsRepository
                 .findByCurrency(request.getCurrency())
                 .orElseThrow(() ->
                         new WalletException(
@@ -177,7 +179,7 @@ public class DepositServiceImpl implements DepositService {
                         )
                 );
 
-        if (request.getAmount().compareTo(settings.getMinAmount()) < 0) {
+        if (request.getAmount().compareTo(settings.getMinDepositAmount()) < 0) {
             throw new WalletException(
                     MessageKeys.DEPOSIT_AMOUNT_BELOW_MIN,
                     HttpStatus.BAD_REQUEST
@@ -198,7 +200,7 @@ public class DepositServiceImpl implements DepositService {
                 );
 
         BigDecimal fee = request.getAmount()
-                .multiply(settings.getFeePercent())
+                .multiply(settings.getDepositFeePercent())
                 .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
 
         BigDecimal expectedAmount = request.getAmount().subtract(fee);
@@ -217,6 +219,18 @@ public class DepositServiceImpl implements DepositService {
         );
 
         depositOrderRepository.save(order);
+
+        applicationEventPublisher.publishEvent(new DepositOrderCreatedEvent(
+                order.getId(),
+                userId,
+                order.getOrderNo(),
+                order.getCurrency(),
+                order.getNetwork(),
+                order.getAmount(),
+                order.getFee(),
+                order.getExpectedAmount(),
+                order.getAddress()
+        ));
 
         return CreateDepositOrderResponse.from(order);
     }

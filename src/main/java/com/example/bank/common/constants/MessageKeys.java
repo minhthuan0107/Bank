@@ -291,6 +291,42 @@ public class MessageKeys {
     public static final String USER_ACCOUNT_NOT_ACTIVE = "user.account.not_active";
     public static final String ADMIN_LOGIN_OTP_EXPIRED_OR_NOT_FOUND = "admin.login.otp.expired_or_not_found";
 
+    public static final String WALLET_CURRENCY_SETTINGS_UPDATED =
+            "wallet_currency_settings.updated";
+
+    public static final String WALLET_CURRENCY_SETTINGS_ALREADY_EXISTS =
+            "wallet_currency_settings.already_exists";
+
+    public static final String WALLET_CURRENCY_SETTINGS_NOT_FOUND =
+            "wallet_currency_settings.not_found";
+
+    public static final String VALIDATION_DEPOSIT_FEE_PERCENT_NOT_NULL =
+            "validation.deposit_fee_percent.not_null";
+
+    public static final String VALIDATION_DEPOSIT_FEE_PERCENT_MIN =
+            "validation.deposit_fee_percent.min";
+
+    public static final String VALIDATION_MIN_DEPOSIT_AMOUNT_NOT_NULL =
+            "validation.min_deposit_amount.not_null";
+
+    public static final String VALIDATION_MIN_DEPOSIT_AMOUNT_MIN =
+            "validation.min_deposit_amount.min";
+
+    public static final String VALIDATION_MIN_WITHDRAW_AMOUNT_NOT_NULL =
+            "validation.min_withdraw_amount.not_null";
+
+    public static final String VALIDATION_MIN_WITHDRAW_AMOUNT_MIN =
+            "validation.min_withdraw_amount.min";
+
+    public static final String VALIDATION_MIN_CARD_FUNDING_AMOUNT_NOT_NULL =
+            "validation.min_card_funding_amount.not_null";
+
+    public static final String VALIDATION_MIN_CARD_FUNDING_AMOUNT_MIN =
+            "validation.min_card_funding_amount.min";
+
+    public static final String WALLET_CURRENCY_SETTINGS_LIST_SUCCESS =
+            "wallet_currency_settings.list.success";
+
 
 
 

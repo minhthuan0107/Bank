@@ -33,12 +33,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdWithRole(@Param("id") Long id);
 
     @Query("""
-       SELECT u
-       FROM User u
-       JOIN u.role r
-       WHERE r.name = 'ADMIN'
-       AND u.status = :status
-       """)
+            SELECT u
+            FROM User u
+            JOIN u.role r
+            WHERE r.name = 'ADMIN'
+            AND u.status = :status
+            """)
     Optional<User> findActiveAdmin(@Param("status") AccountStatus status);
 
     @Query("SELECT u.email FROM User u WHERE u.id = :userId")
@@ -60,13 +60,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdForUpdate(@Param("userId") Long userId);
 
     @Query("""
-        SELECT COUNT(u)
-        FROM User u
-        WHERE u.role.name = 'USER'
-          AND u.status <> com.example.bank.enums.user.AccountStatus.LOCKED
-        """)
+            SELECT COUNT(u)
+            FROM User u
+            WHERE u.role.name = 'USER'
+              AND u.status <> com.example.bank.enums.user.AccountStatus.LOCKED
+            """)
     long countNormalUsers();
 
+
+    @Query("""
+                SELECT u.email
+                FROM User u
+                WHERE u.role.name = 'ADMIN'
+                  AND u.status = com.example.bank.enums.user.AccountStatus.ACTIVE
+                  AND u.email IS NOT NULL
+            """)
+    List<String> findActiveAdminEmails();
 
 
 }
