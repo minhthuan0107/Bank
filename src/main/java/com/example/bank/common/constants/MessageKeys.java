@@ -336,6 +336,27 @@ public class MessageKeys {
     public static final String WITHDRAW_AMOUNT_BELOW_MIN =
             "withdraw.amount.below_min";
 
+    public static final String CARD_FUNDING_AMOUNT_BELOW_MIN =
+            "card.funding_amount.below_min";
+    public static final String VALIDATION_CURRENT_PASSWORD_NOT_BLANK =
+            "validation.current_password.not_blank";
+
+    public static final String USER_PROFILE_SUCCESS =
+            "user.profile.success";
+
+    public static final String ADMIN_PROFILE_SUCCESS =
+            "admin.profile.success";
+
+    public static final String CHANGE_PASSWORD_SUCCESS =
+            "change_password.success";
+
+    public static final String CURRENT_PASSWORD_INVALID =
+            "current_password.invalid";
+
+    public static final String NEW_PASSWORD_SAME_AS_OLD =
+            "new_password.same_as_old";
+
+
 
 
 
