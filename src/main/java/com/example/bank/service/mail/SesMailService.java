@@ -1,6 +1,7 @@
 package com.example.bank.service.mail;
 
 import com.example.bank.event.DepositOrderCreatedEvent;
+import com.example.bank.event.WithdrawOrderPendingAdminEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -120,6 +121,40 @@ public class SesMailService implements MailService {
         } catch (Exception e) {
             log.error("{} email failed to send to {}", mailType, maskEmail(to), e);
         }
+    }
+
+    @Override
+    @Async("mailTaskExecutor")
+    public void sendWithdrawOrderPendingAdminToAdmin(
+            String adminEmail,
+            WithdrawOrderPendingAdminEvent event
+    ) {
+        String subject = "[Bank] New withdrawal request needs approval";
+
+        String body = """
+            A withdrawal request has been verified by OTP and is waiting for admin approval.
+
+            Order ID: %s
+            Order No: %s
+            User ID: %s
+
+            Currency: %s
+            Network: %s
+            Amount: %s
+            To Address: %s
+
+            Please log in to the admin dashboard to review and approve this withdrawal request.
+            """.formatted(
+                event.orderId(),
+                event.orderNo(),
+                event.userId(),
+                event.currency(),
+                event.network(),
+                event.amount(),
+                event.toAddress()
+        );
+
+        sendTextEmail(adminEmail, subject, body, "WITHDRAW_ORDER_PENDING_ADMIN");
     }
 
     private String maskEmail(String email) {

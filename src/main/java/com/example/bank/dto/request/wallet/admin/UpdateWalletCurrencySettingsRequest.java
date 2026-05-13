@@ -1,4 +1,4 @@
-package com.example.bank.dto.request.auth;
+package com.example.bank.dto.request.wallet.admin;
 
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.enums.wallet.Stablecoin;

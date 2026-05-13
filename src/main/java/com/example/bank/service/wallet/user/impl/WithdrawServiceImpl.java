@@ -8,15 +8,16 @@ import com.example.bank.common.exception.auth.OtpException;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.ConfirmWithdrawOtpRequest;
 import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
-import com.example.bank.dto.response.wallet.user.CreateWithdrawOrderResponse;
-import com.example.bank.dto.response.wallet.user.WithdrawDashboardResponse;
-import com.example.bank.dto.response.wallet.user.WithdrawOrderListResponse;
-import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
+import com.example.bank.dto.response.wallet.user.*;
 import com.example.bank.entity.wallet.Wallet;
+import com.example.bank.entity.wallet.WalletCurrencySettings;
 import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
+import com.example.bank.event.WithdrawOrderPendingAdminEvent;
 import com.example.bank.repository.projection.WithdrawDashboardProjection;
+import com.example.bank.repository.projection.WithdrawSummaryProjection;
 import com.example.bank.repository.user.UserRepository;
+import com.example.bank.repository.wallet.WalletCurrencySettingsRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.repository.wallet.WithdrawOrderRepository;
 import com.example.bank.service.mail.MailService;
@@ -24,6 +25,7 @@ import com.example.bank.service.wallet.user.WithdrawService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -53,6 +55,8 @@ public class WithdrawServiceImpl implements WithdrawService {
     private final OtpProperties otpProperties;
     private final WalletRepository walletRepository;
     private static final int DEFAULT_PAGE_SIZE = 10;
+    private final WalletCurrencySettingsRepository walletCurrencySettingsRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
@@ -114,6 +118,20 @@ public class WithdrawServiceImpl implements WithdrawService {
                 });
 
         try {
+            // ===== CHECK MIN WITHDRAW AMOUNT =====
+            WalletCurrencySettings settings = walletCurrencySettingsRepository
+                    .findByCurrencyAndStatus(request.getCurrency(), "ACTIVE")
+                    .orElseThrow(() -> new WalletException(
+                            MessageKeys.WALLET_CURRENCY_SETTINGS_NOT_FOUND,
+                            HttpStatus.NOT_FOUND
+                    ));
+
+            if (request.getAmount().compareTo(settings.getMinWithdrawAmount()) < 0) {
+                throw new WalletException(
+                        MessageKeys.WITHDRAW_AMOUNT_BELOW_MIN,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
             // ===== CHECK BALANCE =====
             Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                     .orElseThrow(() -> new WalletException(
@@ -263,6 +281,16 @@ public class WithdrawServiceImpl implements WithdrawService {
         walletRepository.save(wallet);
 
         order.markPendingAdmin();
+
+        applicationEventPublisher.publishEvent(new WithdrawOrderPendingAdminEvent(
+                order.getId(),
+                userId,
+                order.getOrderNo(),
+                order.getCurrency(),
+                order.getNetwork(),
+                order.getToAddress(),
+                order.getAmount()
+        ));
     }
 
 
@@ -482,5 +510,26 @@ public class WithdrawServiceImpl implements WithdrawService {
                                 : 0L
                 )
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WithdrawSummaryResponse getWithdrawSummary(Long userId) {
+        WithdrawSummaryProjection summary = walletRepository.findWithdrawSummaryByUserId(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_WITHDRAW_SUMMARY_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        return WithdrawSummaryResponse.builder()
+                .walletId(summary.getWalletId())
+                .balance(safe(summary.getBalance()))
+                .minimumWithdrawalAmount(safe(summary.getMinimumWithdrawalAmount()))
+                .currency(summary.getCurrency())
+                .build();
+    }
+
+    private BigDecimal safe(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }

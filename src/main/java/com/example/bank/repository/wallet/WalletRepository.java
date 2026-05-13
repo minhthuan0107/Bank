@@ -4,6 +4,7 @@ import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.projection.WalletAssetAllocationProjection;
 import com.example.bank.repository.projection.WalletSummaryProjection;
+import com.example.bank.repository.projection.WithdrawSummaryProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -91,6 +92,24 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
         LIMIT 1
         """, nativeQuery = true)
     Optional<WalletAssetAllocationProjection> findAssetAllocationByUserId(
+            @Param("userId") Long userId
+    );
+
+    @Query(value = """
+    SELECT 
+        w.id AS walletId,
+        COALESCE(w.available_balance, 0) AS balance,
+        COALESCE(s.min_withdraw_amount, 0) AS minimumWithdrawalAmount,
+        w.currency AS currency
+    FROM wallets w
+    JOIN wallet_currency_settings s 
+        ON s.currency = w.currency
+       AND s.status = 'ACTIVE'
+    WHERE w.user_id = :userId
+      AND w.status = 'ACTIVE'
+    LIMIT 1
+    """, nativeQuery = true)
+    Optional<WithdrawSummaryProjection>  findWithdrawSummaryByUserId(
             @Param("userId") Long userId
     );
 }

@@ -9,6 +9,7 @@ import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
 import com.example.bank.dto.response.wallet.user.CreateWithdrawOrderResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawDashboardResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
+import com.example.bank.dto.response.wallet.user.WithdrawSummaryResponse;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import com.example.bank.service.wallet.user.WithdrawService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -164,4 +165,21 @@ public class WithdrawController {
                 )
         );
     }
+    @GetMapping("/summary")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<WithdrawSummaryResponse>> getWithdrawSummary(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        WithdrawSummaryResponse response =
+                withdrawService.getWithdrawSummary(currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.WALLET_WITHDRAW_SUMMARY_SUCCESS),
+                        response
+                )
+        );
+    }
+
 }

@@ -3,7 +3,7 @@ package com.example.bank.service.wallet.admin.impl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 
-import com.example.bank.dto.request.auth.UpdateWalletCurrencySettingsRequest;
+import com.example.bank.dto.request.wallet.admin.UpdateWalletCurrencySettingsRequest;
 import com.example.bank.dto.response.wallet.admin.WalletCurrencySettingsResponse;
 import com.example.bank.entity.wallet.WalletCurrencySettings;
 import com.example.bank.repository.wallet.WalletCurrencySettingsRepository;
@@ -49,13 +49,11 @@ public class WalletCurrencySettingsServiceImpl implements WalletCurrencySettings
             );
         }
 
-        settings.setCurrency(request.getCurrency());
         settings.setDepositFeePercent(request.getDepositFeePercent());
         settings.setMinDepositAmount(request.getMinDepositAmount());
         settings.setMinWithdrawAmount(request.getMinWithdrawAmount());
         settings.setMinCardFundingAmount(request.getMinCardFundingAmount());
         WalletCurrencySettings saved = repository.save(settings);
-
         return toResponse(saved);
     }
 

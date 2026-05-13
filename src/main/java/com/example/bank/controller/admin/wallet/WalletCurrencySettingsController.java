@@ -3,7 +3,7 @@ package com.example.bank.controller.admin.wallet;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
-import com.example.bank.dto.request.auth.UpdateWalletCurrencySettingsRequest;
+import com.example.bank.dto.request.wallet.admin.UpdateWalletCurrencySettingsRequest;
 import com.example.bank.dto.response.wallet.admin.WalletCurrencySettingsResponse;
 import com.example.bank.service.wallet.admin.WalletCurrencySettingsService;
 import jakarta.validation.Valid;

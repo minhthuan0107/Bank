@@ -1,6 +1,7 @@
 package com.example.bank.service.mail;
 
 import com.example.bank.event.DepositOrderCreatedEvent;
+import com.example.bank.event.WithdrawOrderPendingAdminEvent;
 
 public interface MailService {
 
@@ -8,4 +9,9 @@ public interface MailService {
 
     void sendDepositOrderCreatedToAdmin(String adminEmail, DepositOrderCreatedEvent event);
 
+
+    void sendWithdrawOrderPendingAdminToAdmin(
+            String adminEmail,
+            WithdrawOrderPendingAdminEvent event
+    );
 }
