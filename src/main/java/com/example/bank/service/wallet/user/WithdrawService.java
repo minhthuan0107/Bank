@@ -5,6 +5,7 @@ import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
 import com.example.bank.dto.response.wallet.user.CreateWithdrawOrderResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawDashboardResponse;
 import com.example.bank.dto.response.wallet.user.WithdrawOrderPageResponse;
+import com.example.bank.dto.response.wallet.user.WithdrawSummaryResponse;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -43,8 +44,5 @@ public interface WithdrawService {
 
     WithdrawDashboardResponse getWithdrawDashboard(Long userId);
 
-
-
-
-
+    WithdrawSummaryResponse getWithdrawSummary(Long userId);
 }

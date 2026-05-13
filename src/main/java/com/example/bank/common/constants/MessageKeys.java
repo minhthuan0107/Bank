@@ -327,6 +327,15 @@ public class MessageKeys {
     public static final String WALLET_CURRENCY_SETTINGS_LIST_SUCCESS =
             "wallet_currency_settings.list.success";
 
+    public static final String WALLET_WITHDRAW_SUMMARY_SUCCESS =
+            "wallet.withdraw.summary.success";
+
+    public static final String WALLET_WITHDRAW_SUMMARY_NOT_FOUND =
+            "wallet.withdraw.summary.not_found";
+
+    public static final String WITHDRAW_AMOUNT_BELOW_MIN =
+            "withdraw.amount.below_min";
+
 
 
 
