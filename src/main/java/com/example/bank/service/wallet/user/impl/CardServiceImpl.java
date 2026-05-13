@@ -1,6 +1,5 @@
 package com.example.bank.service.wallet.user.impl;
 
-import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.config.slash.SlashClient;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
@@ -15,6 +14,7 @@ import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.wallet.CardBrand;
 import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.enums.wallet.CardTxnStatus;
+import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.event.CardCreatedEvent;
 import com.example.bank.repository.projection.CardDashboardProjection;
 import com.example.bank.repository.user.UserRepository;
@@ -47,6 +47,7 @@ public class CardServiceImpl implements CardService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final CardFundingTransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final WalletCurrencySettingsRepository walletCurrencySettingsRepository;
     private static final int DEFAULT_PAGE_SIZE = 10;
 
 
@@ -70,6 +71,22 @@ public class CardServiceImpl implements CardService {
 
             BigDecimal amount = request.getAmount();
             BigDecimal available = wallet.getAvailableBalance();
+
+            // ===== CHECK MIN CARD FUNDING AMOUNT =====
+            // Số tiền tạo/nạp thẻ không được nhỏ hơn cấu hình tối thiểu.
+            WalletCurrencySettings settings = walletCurrencySettingsRepository
+                    .findByCurrencyAndStatus(Stablecoin.USDT, "ACTIVE")
+                    .orElseThrow(() -> new WalletException(
+                            MessageKeys.WALLET_CURRENCY_SETTINGS_NOT_FOUND,
+                            HttpStatus.NOT_FOUND
+                    ));
+
+            if (amount.compareTo(settings.getMinCardFundingAmount()) < 0) {
+                throw new WalletException(
+                        MessageKeys.CARD_FUNDING_AMOUNT_BELOW_MIN,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
 
             if (available.compareTo(amount) < 0) {
                 throw new WalletException(
