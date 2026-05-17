@@ -52,12 +52,32 @@ public class CashbackBatchProcessor {
             Long userId = p.getUserId();
             BigDecimal totalSpent = p.getTotalSpent();
 
+            log.info(
+                    "Cashback candidate month={} userId={} totalSpent={}",
+                    month,
+                    userId,
+                    totalSpent
+            );
+
             if (userId == null || totalSpent == null || totalSpent.compareTo(BigDecimal.ZERO) <= 0) {
+                log.info(
+                        "Skip cashback reason=INVALID_TOTAL_SPENT month={} userId={} totalSpent={}",
+                        month,
+                        userId,
+                        totalSpent
+                );
                 continue;
             }
 
             CashbackRule rule = findMatchedRule(rules, totalSpent);
             if (rule == null) {
+                log.info(
+                        "Skip cashback reason=NO_MATCHED_RULE month={} userId={} totalSpent={} rulesSize={}",
+                        month,
+                        userId,
+                        totalSpent,
+                        rules == null ? 0 : rules.size()
+                );
                 continue;
             }
 
