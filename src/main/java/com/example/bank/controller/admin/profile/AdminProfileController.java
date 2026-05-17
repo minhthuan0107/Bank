@@ -16,7 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/admin/profile")
+@RequestMapping("${api.prefix}/admin/profile")
 @RequiredArgsConstructor
 public class AdminProfileController {
 

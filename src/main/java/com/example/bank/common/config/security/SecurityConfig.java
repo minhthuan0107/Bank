@@ -1,4 +1,5 @@
 package com.example.bank.common.config.security;
+import com.example.bank.common.config.ratelimit.GlobalRateLimitFilter;
 import com.example.bank.common.config.security.jwt.JwtAuthenticationFilter;
 import com.example.bank.common.config.security.jwt.JwtExceptionFilter;
 import com.example.bank.common.config.security.jwt.JwtProperties;
@@ -36,6 +37,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
     private final UserDetailsService userDetailsService; // chính là UserDetailsServiceImpl @Service
     private final CorsConfigurationSource corsConfigurationSource;
+    private final GlobalRateLimitFilter globalRateLimitFilter;
 
     @Value("${api.prefix}")
     private String apiPrefix;
@@ -108,6 +110,8 @@ public class SecurityConfig {
                 .addFilterBefore(jwtExceptionFilter, UsernamePasswordAuthenticationFilter.class)
                 // Filter xác thực JWT (BÊN TRONG)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                .addFilterAfter(globalRateLimitFilter, JwtAuthenticationFilter.class)
                 // xử lý lỗi Authentication & Authorization
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> {

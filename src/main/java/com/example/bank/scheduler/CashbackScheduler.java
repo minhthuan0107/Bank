@@ -16,7 +16,8 @@ public class CashbackScheduler {
     /**
      * Chạy mỗi 3 tiếng
      */
-    @Scheduled(cron = "0 0 */3 * * ?")
+    //@Scheduled(cron = "0 0 */3 * * ?")
+    @Scheduled(cron = "0 * * * * ?")
     public void generateCashbackMonthly() {
         log.info("Start cashback batch job");
 
