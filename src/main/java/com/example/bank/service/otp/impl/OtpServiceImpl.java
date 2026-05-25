@@ -142,13 +142,6 @@ public class OtpServiceImpl implements OtpService {
             // ===== Send email =====
             mailService.sendOtp(email, otp);
 
-            log.info(
-                    "OTP-SUCCESS purpose={} email={} ip={}",
-                    purpose,
-                    masked,
-                    ctx.getIp()
-            );
-
             return new OtpEnqueuedResponse(
                     null,
                     masked,
