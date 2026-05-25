@@ -15,7 +15,8 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
                 "http://localhost:4300",
-                "http://192.168.1.94:4200"
+                "http://192.168.1.94:4200",
+                "https://vcccardads.com"
         ));
 
         config.setAllowedMethods(List.of(
