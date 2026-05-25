@@ -66,7 +66,7 @@ public class AdminUserCardSingleStatusServiceImpl implements AdminUserCardSingle
             return;
         }
 
-        // 1. Khóa trên Slash trước
+        // Khóa trên Slash trước
         slashClient.lockCard(card.getSlashCardId());
 
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
@@ -85,8 +85,6 @@ public class AdminUserCardSingleStatusServiceImpl implements AdminUserCardSingle
         }
         card.setStatus(CardStatus.BLOCKED);
         cardRepository.save(card);
-
-        log.info("Locked card success cardId={}, userId={}", cardId, card.getUserId());
     }
 
     @Override
@@ -114,10 +112,10 @@ public class AdminUserCardSingleStatusServiceImpl implements AdminUserCardSingle
             return;
         }
 
-        // 1. Mở trên Slash trước
+        // Mở trên Slash trước
         slashClient.unblockCard(card.getSlashCardId());
 
-        // 2. Nếu locked_amount > 0 thì mới move balance frozen -> allocated
+        // Nếu locked_amount > 0 thì mới move balance frozen -> allocated
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
             wallet.setFrozenBalance(
                     wallet.getFrozenBalance().subtract(amount)
@@ -133,15 +131,9 @@ public class AdminUserCardSingleStatusServiceImpl implements AdminUserCardSingle
             walletRepository.save(wallet);
         }
 
-        // 3. amount = 0 vẫn mở thẻ local
+        // amount = 0 vẫn mở thẻ local
         card.setStatus(CardStatus.ACTIVE);
         cardRepository.save(card);
 
-        log.info(
-                "Unlocked card success cardId={}, userId={}, amount={}",
-                cardId,
-                card.getUserId(),
-                amount
-        );
     }
 }

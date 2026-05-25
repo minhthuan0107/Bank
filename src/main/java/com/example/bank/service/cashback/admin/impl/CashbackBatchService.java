@@ -39,9 +39,7 @@ public class CashbackBatchService {
                 .atStartOfDay(ZoneOffset.UTC)
                 .toInstant();
 
-        log.info("Start cashback monthly batch month={} start={} end={}", month, start, end);
-
-        // ===== 1. SUM tất cả user =====
+        // ===== SUM tất cả user =====
         List<UserSpentProjection> all =
                 cardTransactionRepository.sumAllUsers(start, end);
 
@@ -50,7 +48,7 @@ public class CashbackBatchService {
             return;
         }
 
-        // ===== 2. Load rules =====
+        // ===== Load rules =====
         List<CashbackRule> rules =
                 ruleRepository.findAllByIsActiveTrueOrderByMinSpentAsc();
 
@@ -59,7 +57,7 @@ public class CashbackBatchService {
             return;
         }
 
-        // ===== 3. Chia batch =====
+        // ===== Chia batch =====
         for (int i = 0; i < all.size(); i += BATCH_SIZE) {
             List<UserSpentProjection> batch =
                     all.subList(i, Math.min(i + BATCH_SIZE, all.size()));

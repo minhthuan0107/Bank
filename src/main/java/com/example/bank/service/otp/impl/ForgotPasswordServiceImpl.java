@@ -76,8 +76,6 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
         otpRequest.setPurpose(OtpPurpose.RESET);
 
         otpService.handleOtpRequest(otpRequest, httpRequest);
-
-        log.info("FORGOT-PASSWORD-OTP-SENT userId={} email={}", user.getId(), maskEmail(user.getEmail()));
     }
 
     private String normalize(String value) {
@@ -155,8 +153,6 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
          * OTP dùng xong phải xoá để tránh dùng lại.
          */
         redis.delete(otpKey);
-
-        log.info("RESET-PASSWORD-SUCCESS userId={}", user.getId());
     }
 
 

@@ -31,13 +31,20 @@ public class SesMailService implements MailService {
     @Override
     @Async("mailTaskExecutor")
     public void sendOtp(String email, String otp) {
-        String subject = "Bank OTP Verification";
+        String subject = "Your VCC Card Ads verification code";
 
         String body = """
-                Your OTP code is: %s
-                This code will expire in 3 minutes.
-                If you did not request this, please ignore this email.
-                """.formatted(otp);
+            Your VCC Card Ads verification code is:
+
+            %s
+
+            This code will expire in 3 minutes.
+
+            If you did not request this code, you can safely ignore this email.
+            For your security, do not share this code with anyone.
+
+            VCC Card Ads
+            """.formatted(otp);
 
         sendTextEmail(email, subject, body, "OTP");
     }
@@ -48,24 +55,28 @@ public class SesMailService implements MailService {
             String adminEmail,
             DepositOrderCreatedEvent event
     ) {
-        String subject = "[Bank] New deposit order needs approval";
+        String subject = "[VCC Card Ads] Deposit order pending review";
 
         String body = """
-                A new deposit order has been created and is waiting for admin review.
+            A new deposit order has been created and is waiting for admin review.
 
-                Order ID: %s
-                Order No: %s
-                User ID: %s
+            Order details:
+            - Order ID: %s
+            - Order No: %s
+            - User ID: %s
 
-                Currency: %s
-                Network: %s
-                Amount: %s
-                Fee: %s
-                Expected Amount: %s
-                Deposit Address: %s
+            Payment details:
+            - Currency: %s
+            - Network: %s
+            - Amount: %s
+            - Fee: %s
+            - Expected Amount: %s
+            - Deposit Address: %s
 
-                Please log in to the admin dashboard to review and approve this deposit order.
-                """.formatted(
+            Please log in to the VCC Card Ads admin dashboard to review this order.
+
+            VCC Card Ads
+            """.formatted(
                 event.orderId(),
                 event.orderNo(),
                 event.userId(),
@@ -80,14 +91,58 @@ public class SesMailService implements MailService {
         sendTextEmail(adminEmail, subject, body, "DEPOSIT_ORDER_CREATED");
     }
 
+    @Override
+    @Async("mailTaskExecutor")
+    public void sendWithdrawOrderPendingAdminToAdmin(
+            String adminEmail,
+            WithdrawOrderPendingAdminEvent event
+    ) {
+        String subject = "[VCC Card Ads] Withdrawal request pending approval";
+
+        String body = """
+            A withdrawal request has been verified by OTP and is waiting for admin approval.
+
+            Order details:
+            - Order ID: %s
+            - Order No: %s
+            - User ID: %s
+
+            Withdrawal details:
+            - Currency: %s
+            - Network: %s
+            - Amount: %s
+            - To Address: %s
+
+            Please log in to the VCC Card Ads admin dashboard to review this withdrawal request.
+
+            VCC Card Ads
+            """.formatted(
+                event.orderId(),
+                event.orderNo(),
+                event.userId(),
+                event.currency(),
+                event.network(),
+                event.amount(),
+                event.toAddress()
+        );
+
+        sendTextEmail(adminEmail, subject, body, "WITHDRAW_ORDER_PENDING_ADMIN");
+    }
+
     private void sendTextEmail(
             String to,
             String subject,
             String body,
             String mailType
     ) {
-        SendEmailRequest request = SendEmailRequest.builder()
+        if (to == null || to.isBlank()) {
+            log.warn("{} email skipped because recipient is empty", mailType);
+            return;
+        }
+
+        SendEmailRequest.Builder requestBuilder = SendEmailRequest.builder()
                 .source("%s <%s>".formatted(fromName, fromEmail))
+                .replyToAddresses(fromEmail)
                 .destination(
                         Destination.builder()
                                 .toAddresses(to)
@@ -112,49 +167,20 @@ public class SesMailService implements MailService {
                                                 .build()
                                 )
                                 .build()
-                )
-                .build();
+                );
+
+        /*
+         * Nếu bạn có tạo SES Configuration Set thì mở dòng này.
+         * Ví dụ:
+         * requestBuilder.configurationSetName("vcccardads-transactional");
+         */
 
         try {
-            sesClient.sendEmail(request);
+            sesClient.sendEmail(requestBuilder.build());
             log.info("{} email sent to {}", mailType, maskEmail(to));
         } catch (Exception e) {
             log.error("{} email failed to send to {}", mailType, maskEmail(to), e);
         }
-    }
-
-    @Override
-    @Async("mailTaskExecutor")
-    public void sendWithdrawOrderPendingAdminToAdmin(
-            String adminEmail,
-            WithdrawOrderPendingAdminEvent event
-    ) {
-        String subject = "[Bank] New withdrawal request needs approval";
-
-        String body = """
-            A withdrawal request has been verified by OTP and is waiting for admin approval.
-
-            Order ID: %s
-            Order No: %s
-            User ID: %s
-
-            Currency: %s
-            Network: %s
-            Amount: %s
-            To Address: %s
-
-            Please log in to the admin dashboard to review and approve this withdrawal request.
-            """.formatted(
-                event.orderId(),
-                event.orderNo(),
-                event.userId(),
-                event.currency(),
-                event.network(),
-                event.amount(),
-                event.toAddress()
-        );
-
-        sendTextEmail(adminEmail, subject, body, "WITHDRAW_ORDER_PENDING_ADMIN");
     }
 
     private String maskEmail(String email) {
