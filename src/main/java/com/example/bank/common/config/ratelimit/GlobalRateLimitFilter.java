@@ -150,14 +150,19 @@ public class GlobalRateLimitFilter extends OncePerRequestFilter {
                     ),
 
                     /*
-                     * Production:
-                     * - 10 request / 1 giây
-                     * - 100 request / 1 phút
-                     * - 2000 request / 1 giờ
+                     * Production global API rate limit:
+                     * - 30 request / 1 giây
+                     * - 300 request / 1 phút
+                     * - 3000 request / 1 giờ
+                     *
+                     * Lưu ý:
+                     * - Đây là global limit cho toàn bộ API.
+                     * - Không nên quá gắt vì Angular dashboard có thể gọi nhiều API cùng lúc.
+                     * - Login / OTP / Admin nên có limit riêng chặt hơn.
                      */
-                    "10",
-                    "100",
-                    "2000",
+                    "30",
+                    "300",
+                    "3000",
 
                     String.valueOf(Duration.ofSeconds(1).toSeconds()),
                     String.valueOf(Duration.ofMinutes(1).toSeconds()),
@@ -165,13 +170,13 @@ public class GlobalRateLimitFilter extends OncePerRequestFilter {
 
                     /*
                      * Ban time:
-                     * - vượt limit giây  -> ban 20 phút
-                     * - vượt limit phút  -> ban 2 tiếng
-                     * - vượt limit giờ   -> ban 6 tiếng
+                     * - vượt limit giây  -> ban 1 phút
+                     * - vượt limit phút  -> ban 10 phút
+                     * - vượt limit giờ   -> ban 1 tiếng
                      */
-                    String.valueOf(Duration.ofMinutes(20).toSeconds()),
-                    String.valueOf(Duration.ofHours(2).toSeconds()),
-                    String.valueOf(Duration.ofHours(6).toSeconds())
+                    String.valueOf(Duration.ofMinutes(1).toSeconds()),
+                    String.valueOf(Duration.ofMinutes(10).toSeconds()),
+                    String.valueOf(Duration.ofHours(1).toSeconds())
             );
             log.debug("RATE_LIMIT_RESULT identity={} path={} result={}", identity, path, result);
 
