@@ -113,6 +113,23 @@
             <version>0.12.5</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- Flyway database migration -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+            <version>4.28.0</version>
+        </dependency>
+
+        <!-- Flyway support for MySQL -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

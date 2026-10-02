@@ -8,8 +8,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-
 
 @Entity
 @Table(name = "deposit_orders")
@@ -35,8 +33,14 @@ public class DepositOrder extends BaseEntity {
     @Column(name = "network", nullable = false, length = 20)
     private String network;
 
-    @Column(name = "address", nullable = false, length = 255)
-    private String address;
+    // Địa chỉ của Bank nhận tiền.
+    @Column(name = "destination_address", nullable = false, length = 255)
+    private String destinationAddress;
+
+    // Địa chỉ external wallet của user dùng để gửi tiền.
+    // Nullable tạm thời vì các DepositOrder cũ chưa có dữ liệu này.
+    @Column(name = "source_address", length = 255)
+    private String sourceAddress;
 
     @Column(name = "amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;
@@ -60,18 +64,19 @@ public class DepositOrder extends BaseEntity {
             Stablecoin currency,
             String network,
             String address,
+            String sourceAddress,
             BigDecimal amount,
             BigDecimal fee,
             BigDecimal expectedAmount
     ) {
-
         DepositOrder order = new DepositOrder();
 
         order.setUserId(userId);
         order.setOrderNo(orderNo);
         order.setCurrency(currency);
         order.setNetwork(network);
-        order.setAddress(address);
+        order.setDestinationAddress(address);
+        order.setSourceAddress(sourceAddress);
         order.setAmount(amount);
         order.setFee(fee);
         order.setExpectedAmount(expectedAmount);
@@ -87,5 +92,4 @@ public class DepositOrder extends BaseEntity {
     public void markFailed() {
         this.status = DepositOrderStatus.FAILED;
     }
-
 }

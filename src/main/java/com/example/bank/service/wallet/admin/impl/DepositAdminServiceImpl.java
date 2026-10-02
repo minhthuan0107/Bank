@@ -237,4 +237,106 @@ public class DepositAdminServiceImpl implements DepositAdminService {
         }
         return value.trim();
     }
+
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public DepositOrderPageAdminResponse getUserDepositOrders(
+            Long userId,
+            String orderNo,
+            String address,
+            DepositOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        orderNo = normalize(orderNo);
+        address = normalize(address);
+
+        if (page < 0) {
+            page = 0;
+        }
+
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new WalletException(
+                    MessageKeys.INVALID_TIME_RANGE,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.USER_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        int size = walletProperties.getDefaultPageSize();
+
+        if (size <= 0) {
+            size = 15;
+        }
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "id")
+        );
+
+        Page<DepositOrder> orders = depositOrderRepository.search(
+                userId,
+                orderNo,
+                address,
+                status,
+                fromTime,
+                toTime,
+                pageable
+        );
+
+        List<DepositOrder> content = orders.getContent();
+
+        if (content.isEmpty()) {
+            return DepositOrderPageAdminResponse.builder()
+                    .items(List.of())
+                    .page(page)
+                    .size(pageable.getPageSize())
+                    .totalSize(0)
+                    .hasNext(false)
+                    .build();
+        }
+
+        List<Long> depositOrderIds = content.stream()
+                .map(DepositOrder::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, List<String>> imageUrlMap = depositOrderIds.isEmpty()
+                ? Map.of()
+                : depositOrderImageRepository.findByDepositOrderIds(depositOrderIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        DepositOrderImage::getDepositOrderId,
+                        Collectors.mapping(
+                                DepositOrderImage::getImageUrl,
+                                Collectors.toList()
+                        )
+                ));
+
+        List<DepositOrderListAdminResponse> items = content.stream()
+                .map(order -> DepositOrderListAdminResponse.from(
+                        order,
+                        user.getUsername(),
+                        imageUrlMap.getOrDefault(order.getId(), List.of())
+                ))
+                .toList();
+
+        return DepositOrderPageAdminResponse.builder()
+                .items(items)
+                .page(page)
+                .size(pageable.getPageSize())
+                .totalSize(orders.getTotalElements())
+                .hasNext(orders.hasNext())
+                .build();
+    }
 }

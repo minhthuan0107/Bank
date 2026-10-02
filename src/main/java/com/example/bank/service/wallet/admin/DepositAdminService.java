@@ -21,4 +21,14 @@ public interface DepositAdminService{
             Instant toTime,
             int page
     );
+
+    DepositOrderPageAdminResponse getUserDepositOrders(
+            Long userId,
+            String orderNo,
+            String address,
+            DepositOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    );
 }

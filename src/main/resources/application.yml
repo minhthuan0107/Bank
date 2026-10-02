@@ -7,6 +7,21 @@ spring:
     username: ${DB_USERNAME:banking}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+    # DB hiện tại đã có sẵn bảng trước khi dùng Flyway
+    baseline-on-migrate: true
+
+    # Baseline ở version 0 để migration V1 trở đi vẫn được chạy
+    baseline-version: 0
+
+    # Kiểm tra checksum các migration đã chạy
+    validate-on-migrate: true
+
+    # Không cho phép Flyway clean nhầm DB
+    clean-disabled: true
 
   data:
     redis:
@@ -58,6 +73,11 @@ aws:
   region: ${AWS_REGION:ap-southeast-1}
   access-key: ${AWS_ACCESS_KEY}
   secret-key: ${AWS_SECRET_KEY}
+resend:
+  api-key: ${RESEND_API_KEY}
+  from:
+    email: no-reply@vcccardads.com
+    name: VCC Card Ads
 
 slash:
   base-url: https://api.slash.com

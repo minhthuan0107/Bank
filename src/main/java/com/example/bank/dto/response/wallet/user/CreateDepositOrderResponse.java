@@ -42,7 +42,7 @@ public class CreateDepositOrderResponse {
                 .orderNo(order.getOrderNo())
                 .currency(order.getCurrency())
                 .network(order.getNetwork())
-                .address(order.getAddress())
+                .address(order.getSourceAddress())
                 .amount(order.getAmount())
                 .fee(order.getFee().stripTrailingZeros())
                 .expectedAmount(order.getExpectedAmount().stripTrailingZeros())

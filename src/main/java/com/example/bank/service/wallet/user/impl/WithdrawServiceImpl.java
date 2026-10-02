@@ -11,13 +11,16 @@ import com.example.bank.dto.request.wallet.user.CreateWithdrawOrderRequest;
 import com.example.bank.dto.response.wallet.user.*;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.entity.wallet.WalletCurrencySettings;
+import com.example.bank.entity.wallet.WalletExternalAddress;
 import com.example.bank.entity.wallet.WithdrawOrder;
+import com.example.bank.enums.wallet.CryptoNetwork;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import com.example.bank.event.WithdrawOrderPendingAdminEvent;
 import com.example.bank.repository.projection.WithdrawDashboardProjection;
 import com.example.bank.repository.projection.WithdrawSummaryProjection;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.WalletCurrencySettingsRepository;
+import com.example.bank.repository.wallet.WalletExternalAddressRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.repository.wallet.WithdrawOrderRepository;
 import com.example.bank.service.mail.MailService;
@@ -57,6 +60,7 @@ public class WithdrawServiceImpl implements WithdrawService {
     private static final int DEFAULT_PAGE_SIZE = 10;
     private final WalletCurrencySettingsRepository walletCurrencySettingsRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final WalletExternalAddressRepository walletExternalAddressRepository;
 
     @Override
     @Transactional
@@ -65,13 +69,14 @@ public class WithdrawServiceImpl implements WithdrawService {
             Long userId,
             HttpServletRequest httpServletRequest
     ) {
-
         AuthContext ctx = AuthContext.from(httpServletRequest);
 
         // ===== RATE LIMIT USER =====
         String rlUserKey = RedisKeys.withdrawRateLimitUser(userId);
-        redis.opsForValue().setIfAbsent(rlUserKey, "0", 60, TimeUnit.SECONDS); // atomic set + ttl
+        redis.opsForValue().setIfAbsent(rlUserKey, "0", 60, TimeUnit.SECONDS);
+
         Long userCount = redis.opsForValue().increment(rlUserKey);
+
         if (userCount != null && userCount > 5) {
             throw new WalletException(
                     MessageKeys.TOO_MANY_REQUESTS,
@@ -79,10 +84,12 @@ public class WithdrawServiceImpl implements WithdrawService {
             );
         }
 
-       // ===== RATE LIMIT IP =====
+        // ===== RATE LIMIT IP =====
         String rlIpKey = RedisKeys.withdrawRateLimitIp(ctx.getIp());
         redis.opsForValue().setIfAbsent(rlIpKey, "0", 60, TimeUnit.SECONDS);
+
         Long ipCount = redis.opsForValue().increment(rlIpKey);
+
         if (ipCount != null && ipCount > 20) {
             throw new WalletException(
                     MessageKeys.TOO_MANY_REQUESTS,
@@ -90,55 +97,114 @@ public class WithdrawServiceImpl implements WithdrawService {
             );
         }
 
-        // ===== LOCK =====
+        // ===== DISTRIBUTED LOCK =====
         String lockKey = RedisKeys.withdrawLockKey(userId);
-        Boolean locked = redis.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
+
+        Boolean locked = redis.opsForValue().setIfAbsent(
+                lockKey,
+                "1",
+                10,
+                TimeUnit.SECONDS
+        );
+
         if (Boolean.FALSE.equals(locked)) {
             throw new WalletException(
                     MessageKeys.WITHDRAW_TOO_MANY_REQUESTS,
                     HttpStatus.TOO_MANY_REQUESTS
             );
         }
-       withdrawRepository.findByUserIdAndStatus(userId, WithdrawOrderStatus.PENDING_OTP)
-                .ifPresent(oldOrder -> {
-                    String oldOtpKey = RedisKeys.withdrawOtpValueKey(oldOrder.getOrderNo());
-                    String otp = redis.opsForValue().get(oldOtpKey);
-                    if (otp != null) {
-                        // OTP còn hạn → KHÔNG throw
-                        throw new WalletException(
-                                MessageKeys.WITHDRAW_OTP_STILL_VALID,
-                                HttpStatus.CONFLICT, // hoặc custom code
-                                oldOrder.getOrderNo() // trả lại orderNo
-                        );
-                    }
-
-                    // OTP hết hạn → expire order cũ
-                    oldOrder.markExpired();
-                    withdrawRepository.save(oldOrder);
-                });
 
         try {
-            // ===== CHECK MIN WITHDRAW AMOUNT =====
-            WalletCurrencySettings settings = walletCurrencySettingsRepository
-                    .findByCurrencyAndStatus(request.getCurrency(), "ACTIVE")
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.WALLET_CURRENCY_SETTINGS_NOT_FOUND,
-                            HttpStatus.NOT_FOUND
-                    ));
+            // ===== CHECK PENDING OTP ORDER =====
+            withdrawRepository
+                    .findByUserIdAndStatus(
+                            userId,
+                            WithdrawOrderStatus.PENDING_OTP
+                    )
+                    .ifPresent(oldOrder -> {
+                        String oldOtpKey =
+                                RedisKeys.withdrawOtpValueKey(
+                                        oldOrder.getOrderNo()
+                                );
 
-            if (request.getAmount().compareTo(settings.getMinWithdrawAmount()) < 0) {
+                        String oldOtp =
+                                redis.opsForValue().get(oldOtpKey);
+
+                        /*
+                         * OTP cũ vẫn còn hiệu lực:
+                         * không tạo thêm withdrawal order mới.
+                         * Trả lại orderNo cũ để FE tiếp tục flow OTP.
+                         */
+                        if (oldOtp != null) {
+                            throw new WalletException(
+                                    MessageKeys.WITHDRAW_OTP_STILL_VALID,
+                                    HttpStatus.CONFLICT,
+                                    oldOrder.getOrderNo()
+                            );
+                        }
+
+                        /*
+                         * OTP đã hết hạn:
+                         * expire order cũ trước khi tạo order mới.
+                         */
+                        oldOrder.markExpired();
+                        withdrawRepository.save(oldOrder);
+                    });
+
+            // ===== LOCK + GET WALLET =====
+            Wallet wallet = walletRepository
+                    .findByUserIdForUpdate(userId)
+                    .orElseThrow(() ->
+                            new WalletException(
+                                    MessageKeys.WALLET_NOT_FOUND,
+                                    HttpStatus.NOT_FOUND
+                            )
+                    );
+
+            // ===== GET FIXED EXTERNAL ADDRESS =====
+            /*
+             * Network và address bắt buộc lấy từ DB.
+             *
+             * Không nhận network/toAddress từ request để tránh user
+             * bypass FE rồi tự thay address bằng Postman/DevTools.
+             */
+            WalletExternalAddress externalAddress =
+                    walletExternalAddressRepository
+                            .findByWalletId(wallet.getId())
+                            .orElseThrow(() ->
+                                    new WalletException(
+                                            MessageKeys.WALLET_EXTERNAL_ADDRESS_REQUIRED,
+                                            HttpStatus.BAD_REQUEST
+                                    )
+                            );
+
+            // ===== CHECK MIN WITHDRAW AMOUNT =====
+            WalletCurrencySettings settings =
+                    walletCurrencySettingsRepository
+                            .findByCurrencyAndStatus(
+                                    request.getCurrency(),
+                                    "ACTIVE"
+                            )
+                            .orElseThrow(() ->
+                                    new WalletException(
+                                            MessageKeys.WALLET_CURRENCY_SETTINGS_NOT_FOUND,
+                                            HttpStatus.NOT_FOUND
+                                    )
+                            );
+
+            if (request.getAmount()
+                    .compareTo(settings.getMinWithdrawAmount()) < 0) {
+
                 throw new WalletException(
                         MessageKeys.WITHDRAW_AMOUNT_BELOW_MIN,
                         HttpStatus.BAD_REQUEST
                 );
             }
+
             // ===== CHECK BALANCE =====
-            Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.WALLET_NOT_FOUND,
-                            HttpStatus.NOT_FOUND
-                    ));
-            if (request.getAmount().compareTo(wallet.getAvailableBalance()) > 0) {
+            if (request.getAmount()
+                    .compareTo(wallet.getAvailableBalance()) > 0) {
+
                 throw new WalletException(
                         MessageKeys.WALLET_INSUFFICIENT_BALANCE,
                         HttpStatus.BAD_REQUEST
@@ -147,34 +213,44 @@ public class WithdrawServiceImpl implements WithdrawService {
 
             // ===== CREATE ORDER =====
             String orderNo = generateOrderNo();
+
             WithdrawOrder order = WithdrawOrder.create(
                     userId,
                     orderNo,
                     request.getCurrency(),
-                    request.getNetwork(),
-                    request.getToAddress(),
+                    externalAddress.getNetwork().name(),
+                    externalAddress.getAddress(),
                     request.getAmount()
             );
 
             try {
                 withdrawRepository.save(order);
+
             } catch (DataIntegrityViolationException ex) {
-                log.warn("WITHDRAW DUPLICATE userId={}", userId);
+                log.warn(
+                        "WITHDRAW_DUPLICATE userId={}",
+                        userId
+                );
+
                 throw new WalletException(
                         MessageKeys.WITHDRAW_ORDER_ALREADY_PENDING,
                         HttpStatus.CONFLICT
                 );
             }
 
-            // ===== LẤY EMAIL =====
-            String email = userRepository.findEmailByUserId(userId)
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.USER_NOT_FOUND,
-                            HttpStatus.NOT_FOUND
-                    ));
+            // ===== GET EMAIL =====
+            String email = userRepository
+                    .findEmailByUserId(userId)
+                    .orElseThrow(() ->
+                            new WalletException(
+                                    MessageKeys.USER_NOT_FOUND,
+                                    HttpStatus.NOT_FOUND
+                            )
+                    );
 
-            // ===== OTP =====
+            // ===== CREATE OTP =====
             String otp = generateOtp();
+
             redis.opsForValue().set(
                     RedisKeys.withdrawOtpValueKey(orderNo),
                     otp,
@@ -516,16 +592,24 @@ public class WithdrawServiceImpl implements WithdrawService {
     @Transactional(readOnly = true)
     public WithdrawSummaryResponse getWithdrawSummary(Long userId) {
         WithdrawSummaryProjection summary = walletRepository.findWithdrawSummaryByUserId(userId)
-                .orElseThrow(() -> new WalletException(
-                        MessageKeys.WALLET_WITHDRAW_SUMMARY_NOT_FOUND,
-                        HttpStatus.NOT_FOUND
-                ));
+                .orElseThrow(() ->
+                        new WalletException(
+                                MessageKeys.WALLET_WITHDRAW_SUMMARY_NOT_FOUND,
+                                HttpStatus.NOT_FOUND
+                        )
+                );
+
+        CryptoNetwork network = summary.getNetwork() == null
+                ? null
+                : CryptoNetwork.valueOf(summary.getNetwork());
 
         return WithdrawSummaryResponse.builder()
                 .walletId(summary.getWalletId())
                 .balance(safe(summary.getBalance()))
                 .minimumWithdrawalAmount(safe(summary.getMinimumWithdrawalAmount()))
                 .currency(summary.getCurrency())
+                .network(network)
+                .address(summary.getAddress())
                 .build();
     }
 

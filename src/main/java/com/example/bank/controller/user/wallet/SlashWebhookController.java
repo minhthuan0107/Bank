@@ -14,8 +14,11 @@ public class SlashWebhookController {
     private final SlashWebhookService slashWebhookService;
 
     @PostMapping("/slash")
-    public ResponseEntity<Void> handleWebhook(@RequestBody String payload) {
-        slashWebhookService.handleAsync(payload);
+    public ResponseEntity<Void> handleWebhook(
+            @RequestBody String payload
+    ) {
+        slashWebhookService.handle(payload);
+
         return ResponseEntity.ok().build();
     }
 }

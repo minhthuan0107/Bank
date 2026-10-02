@@ -228,7 +228,7 @@ public class CardFundingServiceImpl implements CardFundingService {
             // ===== SUCCESS =====
             txn.setStatus(CardTxnStatus.SUCCESS);
             txnRepo.save(txn);
-            log.info("WITHDRAW SUCCESS userId={} cardId={} amount={}",
+            log.debug("WITHDRAW SUCCESS userId={} cardId={} amount={}",
                     userId, cardId, amount);
 
         } catch (Exception e) {

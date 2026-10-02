@@ -3,14 +3,15 @@ package com.example.bank.repository.wallet;
 import com.example.bank.entity.wallet.DepositOrder;
 import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.projection.CashFlowProjection;
+import com.example.bank.repository.projection.AdminDepositStatisticsProjection;
 import com.example.bank.repository.projection.DepositDashboardProjection;
-import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -27,27 +28,22 @@ public interface DepositOrderRepository extends JpaRepository<DepositOrder, Long
     Page<DepositOrder> findByUserId(Long userId, Pageable pageable);
 
     @Query("""
-            SELECT d
-            FROM DepositOrder d
-            WHERE d.userId = :userId
-            
-              AND (:orderNo IS NULL OR d.orderNo LIKE %:orderNo%)
-            
-              AND (:address IS NULL OR LOWER(d.address) LIKE LOWER(CONCAT('%', :address, '%')))
-            
-              AND (:status IS NULL OR d.status = :status)
-            
-              AND (:fromTime IS NULL OR d.createdAt >= :fromTime)
-            
-              AND (:toTime IS NULL OR d.createdAt <= :toTime)
-            """)
+        SELECT d
+        FROM DepositOrder d
+        WHERE d.userId = :userId
+          AND (:orderNo IS NULL OR d.orderNo LIKE CONCAT('%', :orderNo, '%'))
+          AND (:address IS NULL OR LOWER(d.sourceAddress) LIKE LOWER(CONCAT('%', :address, '%')))
+          AND (:status IS NULL OR d.status = :status)
+          AND (:fromTime IS NULL OR d.createdAt >= :fromTime)
+          AND (:toTime IS NULL OR d.createdAt <= :toTime)
+        """)
     Page<DepositOrder> search(
-            Long userId,
-            String orderNo,
-            String address,
-            DepositOrderStatus status,
-            Instant fromTime,
-            Instant toTime,
+            @Param("userId") Long userId,
+            @Param("orderNo") String orderNo,
+            @Param("address") String address,
+            @Param("status") DepositOrderStatus status,
+            @Param("fromTime") Instant fromTime,
+            @Param("toTime") Instant toTime,
             Pageable pageable
     );
 
@@ -208,6 +204,39 @@ public interface DepositOrderRepository extends JpaRepository<DepositOrder, Long
             @Param("userId") Long userId,
             @Param("start") Instant start,
             @Param("end") Instant end
+    );
+
+    @Query("""
+        SELECT
+            COALESCE(SUM(CASE
+                WHEN d.status = com.example.bank.enums.wallet.DepositOrderStatus.SUCCESS
+                THEN 1 ELSE 0 END), 0) AS successCount,
+
+            COALESCE(SUM(CASE
+                WHEN d.status = com.example.bank.enums.wallet.DepositOrderStatus.SUCCESS
+                THEN d.amount ELSE 0 END), 0) AS successAmount,
+
+            COALESCE(SUM(CASE
+                WHEN d.status = com.example.bank.enums.wallet.DepositOrderStatus.PENDING
+                THEN 1 ELSE 0 END), 0) AS pendingCount,
+
+            COALESCE(SUM(CASE
+                WHEN d.status = com.example.bank.enums.wallet.DepositOrderStatus.PENDING
+                THEN d.amount ELSE 0 END), 0) AS pendingAmount,
+
+            COALESCE(SUM(CASE
+                WHEN d.status = com.example.bank.enums.wallet.DepositOrderStatus.FAILED
+                THEN 1 ELSE 0 END), 0) AS failedCount,
+
+            COALESCE(SUM(CASE
+                WHEN d.status = com.example.bank.enums.wallet.DepositOrderStatus.FAILED
+                THEN d.amount ELSE 0 END), 0) AS failedAmount
+
+        FROM DepositOrder d
+        WHERE d.userId = :userId
+        """)
+    AdminDepositStatisticsProjection getAdminUserStatistics(
+            @Param("userId") Long userId
     );
 
 }

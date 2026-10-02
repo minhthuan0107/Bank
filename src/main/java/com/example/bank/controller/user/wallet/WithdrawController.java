@@ -165,6 +165,7 @@ public class WithdrawController {
                 )
         );
     }
+
     @GetMapping("/summary")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<WithdrawSummaryResponse>> getWithdrawSummary(

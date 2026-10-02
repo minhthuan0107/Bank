@@ -62,7 +62,7 @@ public class DepositOrderListAdminResponse {
                 .amount(order.getAmount())
                 .fee(order.getFee())
                 .expectedAmount(order.getExpectedAmount())
-                .depositAddress(order.getAddress())
+                .depositAddress(order.getSourceAddress())
                 .status(order.getStatus())
                 .adminNote(order.getAdminNote())
                 .imageUrls(imageUrls)

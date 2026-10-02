@@ -70,4 +70,37 @@ public class WithdrawAdminController {
                 )
         );
     }
+
+    @GetMapping("/users/{userId}/orders")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<WithdrawOrderPageAdminResponse>> getUserWithdrawOrders(
+            @PathVariable Long userId,
+            @RequestParam(name = "order_no", required = false) String orderNo,
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) WithdrawOrderStatus status,
+            @RequestParam(name = "from_time", required = false) Instant fromTime,
+            @RequestParam(name = "to_time", required = false) Instant toTime,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        WithdrawOrderPageAdminResponse response =
+                service.getUserWithdrawOrders(
+                        userId,
+                        orderNo,
+                        address,
+                        status,
+                        fromTime,
+                        toTime,
+                        page
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(
+                                MessageKeys.ADMIN_WITHDRAW_ORDER_LIST_SUCCESS
+                        ),
+                        response
+                )
+        );
+    }
 }
