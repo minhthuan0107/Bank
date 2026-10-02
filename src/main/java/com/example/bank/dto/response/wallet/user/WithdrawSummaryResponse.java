@@ -1,24 +1,28 @@
 package com.example.bank.dto.response.wallet.user;
 
+import com.example.bank.enums.wallet.CryptoNetwork;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
+@Getter
 @Builder
-public record WithdrawSummaryResponse(
+public class WithdrawSummaryResponse {
 
         @JsonProperty("wallet_id")
-        Long walletId,
+        private Long walletId;
 
-        @JsonProperty("balance")
-        BigDecimal balance,
+        private BigDecimal balance;
 
         @JsonProperty("minimum_withdrawal_amount")
-        BigDecimal minimumWithdrawalAmount,
+        private BigDecimal minimumWithdrawalAmount;
 
-        @JsonProperty("currency")
-        Stablecoin currency
-) {
+        private String currency;
+
+        private CryptoNetwork network;
+
+        private String address;
 }

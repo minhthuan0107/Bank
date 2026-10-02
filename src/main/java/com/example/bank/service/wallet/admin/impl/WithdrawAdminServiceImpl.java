@@ -202,5 +202,75 @@ public class WithdrawAdminServiceImpl implements WithdrawAdminService {
         return value.trim();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public WithdrawOrderPageAdminResponse getUserWithdrawOrders(
+            Long userId,
+            String orderNo,
+            String address,
+            WithdrawOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    ) {
+        orderNo = normalize(orderNo);
+        address = normalize(address);
+
+        if (page < 0) {
+            throw new WalletException(
+                    MessageKeys.INVALID_PAGE_NUMBER,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new WalletException(
+                    MessageKeys.INVALID_TIME_RANGE,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.USER_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        int size = walletProperties.getDefaultPageSize();
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+                        .and(Sort.by(Sort.Direction.DESC, "id"))
+        );
+
+        Page<WithdrawOrder> orders = withdrawOrderRepository.search(
+                userId,
+                orderNo,
+                address,
+                status,
+                fromTime,
+                toTime,
+                pageable
+        );
+
+        List<WithdrawOrderListAdminResponse> items = orders.getContent()
+                .stream()
+                .map(order -> WithdrawOrderListAdminResponse.from(
+                        order,
+                        user.getUsername()
+                ))
+                .toList();
+
+        return WithdrawOrderPageAdminResponse.builder()
+                .items(items)
+                .page(page)
+                .size(pageable.getPageSize())
+                .totalSize(orders.getTotalElements())
+                .hasNext(orders.hasNext())
+                .build();
+    }
+
 
 }

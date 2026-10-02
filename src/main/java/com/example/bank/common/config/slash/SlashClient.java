@@ -15,28 +15,43 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class SlashClient {
 
+    private static final int GET_TRANSACTION_MAX_ATTEMPTS = 3;
+
+    private static final Duration GET_TRANSACTION_TIMEOUT =
+            Duration.ofSeconds(2);
+
+    private static final Duration GET_TRANSACTION_RETRY_DELAY =
+            Duration.ofMillis(250);
+
     private final WebClient webClient;
     private final SlashProperties props;
 
     // ===== CREATE CARD =====
-    public SlashCreateCardResponse createCard(String name,
-                                              String productId,
-                                              BigDecimal amount) {
 
-        long cents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+    public SlashCreateCardResponse createCard(
+            String name,
+            String productId,
+            BigDecimal amount
+    ) {
+        long cents = amount
+                .multiply(BigDecimal.valueOf(100))
+                .longValue();
 
         String url = props.getBaseUrl()
                 + props.getEndpoints().getCreateCard();
@@ -73,74 +88,129 @@ public class SlashClient {
                     .headers(h -> h.addAll(buildHeaders()))
                     .bodyValue(body)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, clientResponse ->
-                            clientResponse.bodyToMono(String.class)
-                                    .flatMap(errBody -> {
-                                        log.error("SLASH-CREATE-CARD-ERROR status={} body={}",
-                                                clientResponse.statusCode(), errBody);
-                                        return Mono.error(new WalletException(
-                                                MessageKeys.SLASH_CREATE_CARD_FAILED,
-                                                HttpStatus.BAD_GATEWAY));
-                                    })
+                    .onStatus(
+                            HttpStatusCode::isError,
+                            clientResponse ->
+                                    clientResponse.bodyToMono(String.class)
+                                            .flatMap(errBody -> {
+                                                log.error(
+                                                        "SLASH-CREATE-CARD-ERROR status={} body={}",
+                                                        clientResponse.statusCode(),
+                                                        errBody
+                                                );
+
+                                                return Mono.error(
+                                                        new WalletException(
+                                                                MessageKeys.SLASH_CREATE_CARD_FAILED,
+                                                                HttpStatus.BAD_GATEWAY
+                                                        )
+                                                );
+                                            })
                     )
                     .bodyToMono(SlashCreateCardResponse.class)
                     .block();
 
             if (response == null) {
-                throw new RuntimeException("SLASH_EMPTY_RESPONSE");
+                throw new WalletException(
+                        MessageKeys.SLASH_CREATE_CARD_FAILED,
+                        HttpStatus.BAD_GATEWAY
+                );
             }
 
             return response;
 
         } catch (WalletException e) {
             throw e;
+
         } catch (Exception e) {
-            log.error("SLASH-CREATE-CARD-ERROR err={}", e.getMessage());
-            throw new WalletException(MessageKeys.SLASH_CREATE_CARD_FAILED, HttpStatus.BAD_GATEWAY);
+            log.error(
+                    "SLASH-CREATE-CARD-ERROR err={}",
+                    e.getMessage(),
+                    e
+            );
+
+            throw new WalletException(
+                    MessageKeys.SLASH_CREATE_CARD_FAILED,
+                    HttpStatus.BAD_GATEWAY
+            );
         }
     }
 
     // ===== GET CARD =====
-    public SlashCardDetailResponse getCard(String cardId) {
 
+    public SlashCardDetailResponse getCard(String cardId) {
         String url = props.getBaseUrl()
                 + props.getEndpoints().getGetCard()
                 .replace("{id}", cardId);
 
         try {
-            return webClient.get()
+            SlashCardDetailResponse response = webClient.get()
                     .uri(url)
                     .headers(h -> h.addAll(buildHeaders()))
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, clientResponse ->
-                            clientResponse.bodyToMono(String.class)
-                                    .flatMap(errBody -> {
-                                        log.error("SLASH-GET-CARD-ERROR status={} body={}",
-                                                clientResponse.statusCode(), errBody);
-                                        return Mono.error(new WalletException(
-                                                MessageKeys.SLASH_GET_CARD_FAILED,
-                                                HttpStatus.BAD_GATEWAY));
-                                    })
+                    .onStatus(
+                            HttpStatusCode::isError,
+                            clientResponse ->
+                                    clientResponse.bodyToMono(String.class)
+                                            .flatMap(errBody -> {
+                                                log.error(
+                                                        "SLASH-GET-CARD-ERROR cardId={} status={} body={}",
+                                                        cardId,
+                                                        clientResponse.statusCode(),
+                                                        errBody
+                                                );
+
+                                                return Mono.error(
+                                                        new WalletException(
+                                                                MessageKeys.SLASH_GET_CARD_FAILED,
+                                                                HttpStatus.BAD_GATEWAY
+                                                        )
+                                                );
+                                            })
                     )
                     .bodyToMono(SlashCardDetailResponse.class)
                     .block();
 
+            if (response == null) {
+                throw new WalletException(
+                        MessageKeys.SLASH_GET_CARD_FAILED,
+                        HttpStatus.BAD_GATEWAY
+                );
+            }
+
+            return response;
+
         } catch (WalletException e) {
             throw e;
+
         } catch (Exception e) {
-            log.error("SLASH-GET-CARD-ERROR err={}", e.getMessage());
-            throw new WalletException(MessageKeys.SLASH_GET_CARD_FAILED, HttpStatus.BAD_GATEWAY);
+            log.error(
+                    "SLASH-GET-CARD-ERROR cardId={} err={}",
+                    cardId,
+                    e.getMessage(),
+                    e
+            );
+
+            throw new WalletException(
+                    MessageKeys.SLASH_GET_CARD_FAILED,
+                    HttpStatus.BAD_GATEWAY
+            );
         }
     }
 
-    // ===== INCREASE LIMIT =====
-    public void setLimit(String cardId, BigDecimal amount) {
+    // ===== UPDATE LIMIT =====
 
+    public void setLimit(
+            String cardId,
+            BigDecimal amount
+    ) {
         String url = props.getBaseUrl()
                 + props.getEndpoints().getUpdateLimit()
                 .replace("{id}", cardId);
 
-        long cents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+        long cents = amount
+                .multiply(BigDecimal.valueOf(100))
+                .longValue();
 
         SlashUpdateLimitRequest body =
                 SlashUpdateLimitRequest.builder()
@@ -170,46 +240,75 @@ public class SlashClient {
                     .headers(h -> h.addAll(buildHeaders()))
                     .bodyValue(body)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, clientResponse ->
-                            clientResponse.bodyToMono(String.class)
-                                    .flatMap(errBody -> {
-                                        log.error("SLASH-INCREASE-LIMIT-ERROR cardId={} status={} body={}",
-                                                cardId, clientResponse.statusCode(), errBody);
-                                        return Mono.error(new WalletException(
-                                                MessageKeys.SLASH_UPDATE_LIMIT_FAILED,
-                                                HttpStatus.BAD_GATEWAY));
-                                    })
+                    .onStatus(
+                            HttpStatusCode::isError,
+                            clientResponse ->
+                                    clientResponse.bodyToMono(String.class)
+                                            .flatMap(errBody -> {
+                                                log.error(
+                                                        "SLASH-INCREASE-LIMIT-ERROR cardId={} status={} body={}",
+                                                        cardId,
+                                                        clientResponse.statusCode(),
+                                                        errBody
+                                                );
+
+                                                return Mono.error(
+                                                        new WalletException(
+                                                                MessageKeys.SLASH_UPDATE_LIMIT_FAILED,
+                                                                HttpStatus.BAD_GATEWAY
+                                                        )
+                                                );
+                                            })
                     )
                     .bodyToMono(Void.class)
                     .block();
 
         } catch (WalletException e) {
             throw e;
+
         } catch (Exception e) {
-            log.error("SLASH-INCREASE-LIMIT-ERROR cardId={} err={}", cardId, e.getMessage());
-            throw new WalletException(MessageKeys.SLASH_UPDATE_LIMIT_FAILED, HttpStatus.BAD_GATEWAY);
+            log.error(
+                    "SLASH-INCREASE-LIMIT-ERROR cardId={} err={}",
+                    cardId,
+                    e.getMessage(),
+                    e
+            );
+
+            throw new WalletException(
+                    MessageKeys.SLASH_UPDATE_LIMIT_FAILED,
+                    HttpStatus.BAD_GATEWAY
+            );
         }
     }
 
+    // ===== CARD STATUS =====
 
     public void lockCard(String cardId) {
-        updateCardStatus(cardId, CardStatus.PAUSED);
+        updateCardStatus(
+                cardId,
+                CardStatus.PAUSED
+        );
     }
 
     public void unblockCard(String cardId) {
-        updateCardStatus(cardId, CardStatus.ACTIVE);
+        updateCardStatus(
+                cardId,
+                CardStatus.ACTIVE
+        );
     }
 
-// ===== PRIVATE =====
+    private void updateCardStatus(
+            String cardId,
+            CardStatus status
+    ) {
+        String url = buildUrl(
+                props.getEndpoints().getUpdateCard(),
+                cardId
+        );
 
-    /**
-     * Gọi PATCH /card/{cardId} để cập nhật status thẻ.
-     * Slash API không có endpoint /freeze hay /unfreeze riêng.
-     * Ref: https://docs.slash.com/api-reference/card-patch
-     */
-    private void updateCardStatus(String cardId, CardStatus status) {
-        String url = buildUrl(props.getEndpoints().getUpdateCard(), cardId);
-        Map<String, String> body = Map.of("status", status.getValue());
+        Map<String, String> body =
+                Map.of("status", status.getValue());
+
         webClient.patch()
                 .uri(url)
                 .headers(h -> h.addAll(buildHeaders()))
@@ -217,111 +316,172 @@ public class SlashClient {
                 .retrieve()
                 .onStatus(
                         HttpStatusCode::isError,
-                        response -> response.bodyToMono(String.class)
-                                .defaultIfEmpty("[empty body]")
-                                .flatMap(responseBody -> {
-                                    log.error(
-                                            "[SLASH][UPDATE-STATUS] Failed — cardId={} status={} body={}",
-                                            cardId, response.statusCode(), responseBody
-                                    );
-                                    return Mono.error(new WalletException(
-                                            MessageKeys.SLASH_UPDATE_CARD_FAILED,
-                                            HttpStatus.BAD_GATEWAY
-                                    ));
-                                })
+                        response ->
+                                response.bodyToMono(String.class)
+                                        .defaultIfEmpty("[empty body]")
+                                        .flatMap(responseBody -> {
+                                            log.error(
+                                                    "[SLASH][UPDATE-STATUS] Failed — cardId={} status={} body={}",
+                                                    cardId,
+                                                    response.statusCode(),
+                                                    responseBody
+                                            );
+
+                                            return Mono.error(
+                                                    new WalletException(
+                                                            MessageKeys.SLASH_UPDATE_CARD_FAILED,
+                                                            HttpStatus.BAD_GATEWAY
+                                                    )
+                                            );
+                                        })
                 )
                 .bodyToMono(Void.class)
-                .doOnSuccess(v -> log.info(
-                        "[SLASH][UPDATE-STATUS] Success — cardId={} newStatus={}", cardId, status
-                ))
-                .doOnError(e -> !(e instanceof WalletException), e ->
-                        log.error(
-                                "[SLASH][UPDATE-STATUS] Unexpected error — cardId={} newStatus={}",
-                                cardId, status, e
+                .doOnSuccess(v ->
+                        log.info(
+                                "[SLASH][UPDATE-STATUS] Success — cardId={} newStatus={}",
+                                cardId,
+                                status
                         )
                 )
-                .onErrorMap(e -> !(e instanceof WalletException), e ->
-                        new WalletException(MessageKeys.SLASH_UPDATE_CARD_FAILED, HttpStatus.BAD_GATEWAY)
+                .doOnError(
+                        e -> !(e instanceof WalletException),
+                        e -> log.error(
+                                "[SLASH][UPDATE-STATUS] Unexpected error — cardId={} newStatus={}",
+                                cardId,
+                                status,
+                                e
+                        )
+                )
+                .onErrorMap(
+                        e -> !(e instanceof WalletException),
+                        e -> new WalletException(
+                                MessageKeys.SLASH_UPDATE_CARD_FAILED,
+                                HttpStatus.BAD_GATEWAY
+                        )
                 )
                 .block();
     }
 
-    private String buildUrl(String endpointTemplate, String cardId) {
-        return UriComponentsBuilder
-                .fromHttpUrl(props.getBaseUrl() + endpointTemplate)
-                .buildAndExpand(cardId)
-                .toUriString();
-    }
+    public SlashTransactionResponse getTransaction(String transactionId) {
+        if (transactionId == null || transactionId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "transactionId is blank"
+            );
+        }
 
-    // ===== COMMON HEADERS =====
-    private HttpHeaders buildHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("X-API-Key", props.getApi().getKey());
-        return headers;
-    }
+        String url = props.getBaseUrl()
+                + props.getEndpoints().getGetTransaction()
+                .replace("{id}", transactionId);
 
-    // ===== ENUMS =====
-    @Getter
-    @RequiredArgsConstructor
-    private enum CardStatus {
-        ACTIVE("active"),
-        PAUSED("paused"),
-        INACTIVE("inactive"),
-        CLOSED("closed");
-        private final String value;
-    }
-
-    private SlashTransactionResponse callSlash(String url, String id) {
-        log.info("Calling Slash API: {}", url);
+        log.debug(
+                "SLASH_GET_TRANSACTION_REQUEST txId={}",
+                transactionId
+        );
 
         try {
             SlashTransactionResponse response = webClient.get()
                     .uri(url)
-                    .header("X-API-Key", props.getApi().getKey()) // ✅ chỉ header này
+                    .headers(headers -> headers.addAll(buildHeaders()))
+                    .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, clientResponse ->
-                            clientResponse.bodyToMono(String.class)
-                                    .flatMap(errBody -> {
-                                        log.error("SLASH-ERROR id={} status={} body={}",
-                                                id, clientResponse.statusCode(), errBody);
-
-                                        return Mono.error(new WalletException(
-                                                MessageKeys.SLASH_GET_TRANSACTION_FAILED,
-                                                HttpStatus.BAD_GATEWAY));
-                                    })
-                    )
                     .bodyToMono(SlashTransactionResponse.class)
-                    .timeout(Duration.ofSeconds(5))
+                    .timeout(GET_TRANSACTION_TIMEOUT)
+                    .retryWhen(
+                            Retry.backoff(
+                                            GET_TRANSACTION_MAX_ATTEMPTS - 1,
+                                            GET_TRANSACTION_RETRY_DELAY
+                                    )
+                                    .maxBackoff(Duration.ofSeconds(1))
+                                    .filter(this::isRetryableTransactionError)
+                                    .doBeforeRetry(signal ->
+                                            log.warn(
+                                                    "SLASH_GET_TRANSACTION_RETRY txId={} nextAttempt={}/{} reason={}",
+                                                    transactionId,
+                                                    signal.totalRetries() + 2,
+                                                    GET_TRANSACTION_MAX_ATTEMPTS,
+                                                    signal.failure().getMessage()
+                                            )
+                                    )
+                                    .onRetryExhaustedThrow(
+                                            (spec, signal) ->
+                                                    signal.failure()
+                                    )
+                    )
                     .block();
 
-            if (response == null) {
-                log.warn("Slash returned null body id={}", id);
+            if (response == null
+                    || response.getId() == null
+                    || response.getId().isBlank()) {
+
+                log.error(
+                        "SLASH_GET_TRANSACTION_EMPTY_RESPONSE txId={}",
+                        transactionId
+                );
+
+                throw new WalletException(
+                        MessageKeys.SLASH_GET_TRANSACTION_FAILED,
+                        HttpStatus.BAD_GATEWAY
+                );
             }
+
+            log.debug(
+                    "SLASH_GET_TRANSACTION_SUCCESS txId={} status={} detailedStatus={}",
+                    response.getId(),
+                    response.getStatus(),
+                    response.getDetailedStatus()
+            );
 
             return response;
 
         } catch (WalletException e) {
             throw e;
-        } catch (Exception e) {
-            log.error("SLASH-ERROR id={} err={}", id, e.getMessage(), e);
+
+        } catch (WebClientResponseException e) {
+            log.error(
+                    "SLASH_GET_TRANSACTION_FAILED txId={} status={} body={}",
+                    transactionId,
+                    e.getStatusCode().value(),
+                    e.getResponseBodyAsString()
+            );
+
             throw new WalletException(
                     MessageKeys.SLASH_GET_TRANSACTION_FAILED,
-                    HttpStatus.BAD_GATEWAY);
+                    HttpStatus.BAD_GATEWAY
+            );
+
+        } catch (Exception e) {
+            log.error(
+                    "SLASH_GET_TRANSACTION_FAILED txId={} message={}",
+                    transactionId,
+                    e.getMessage(),
+                    e
+            );
+
+            throw new WalletException(
+                    MessageKeys.SLASH_GET_TRANSACTION_FAILED,
+                    HttpStatus.BAD_GATEWAY
+            );
         }
     }
 
-    public SlashTransactionResponse getTransaction(String id) {
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("transactionId is blank");
+    private boolean isRetryableTransactionError(Throwable throwable) {
+        if (throwable instanceof WebClientResponseException e) {
+            int statusCode = e.getStatusCode().value();
+
+            return statusCode == 408
+                    || statusCode == 429
+                    || statusCode >= 500;
         }
-            String url = props.getBaseUrl()
-                    + props.getEndpoints().getGetTransaction()
-                    .replace("{id}", id);
-        return callSlash(url, id);
+
+        return throwable instanceof WebClientRequestException
+                || throwable instanceof TimeoutException;
     }
 
-    public SlashCardSensitiveDetailResponse getCardSensitiveDetail(String cardId) {
+    // ===== GET CARD SENSITIVE =====
+
+    public SlashCardSensitiveDetailResponse getCardSensitiveDetail(
+            String cardId
+    ) {
         if (cardId == null || cardId.isBlank()) {
             throw new WalletException(
                     MessageKeys.SLASH_CARD_ID_INVALID,
@@ -330,7 +490,10 @@ public class SlashClient {
         }
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(props.getVaultBaseUrl() + props.getEndpoints().getGetCard())
+                .fromHttpUrl(
+                        props.getVaultBaseUrl()
+                                + props.getEndpoints().getGetCard()
+                )
                 .queryParam("include_pan", "true")
                 .queryParam("include_cvv", "true")
                 .buildAndExpand(cardId)
@@ -339,27 +502,36 @@ public class SlashClient {
         try {
             SlashCardSensitiveDetailResponse response = webClient.get()
                     .uri(url)
-                    .header("X-API-Key", props.getApi().getKey())
+                    .header(
+                            "X-API-Key",
+                            props.getApi().getKey()
+                    )
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, clientResponse ->
-                            clientResponse.bodyToMono(String.class)
-                                    .defaultIfEmpty("[empty body]")
-                                    .flatMap(errBody -> {
-                                        log.error(
-                                                "SLASH-GET-CARD-SENSITIVE-ERROR cardId={} status={} body={}",
-                                                cardId,
-                                                clientResponse.statusCode(),
-                                                errBody
-                                        );
+                    .onStatus(
+                            HttpStatusCode::isError,
+                            clientResponse ->
+                                    clientResponse.bodyToMono(String.class)
+                                            .defaultIfEmpty("[empty body]")
+                                            .flatMap(errBody -> {
+                                                log.error(
+                                                        "SLASH-GET-CARD-SENSITIVE-ERROR cardId={} status={} body={}",
+                                                        cardId,
+                                                        clientResponse.statusCode(),
+                                                        errBody
+                                                );
 
-                                        return Mono.error(new WalletException(
-                                                MessageKeys.SLASH_GET_CARD_SENSITIVE_FAILED,
-                                                HttpStatus.BAD_GATEWAY
-                                        ));
-                                    })
+                                                return Mono.error(
+                                                        new WalletException(
+                                                                MessageKeys.SLASH_GET_CARD_SENSITIVE_FAILED,
+                                                                HttpStatus.BAD_GATEWAY
+                                                        )
+                                                );
+                                            })
                     )
-                    .bodyToMono(SlashCardSensitiveDetailResponse.class)
+                    .bodyToMono(
+                            SlashCardSensitiveDetailResponse.class
+                    )
                     .timeout(Duration.ofSeconds(5))
                     .block();
 
@@ -374,6 +546,7 @@ public class SlashClient {
 
         } catch (WalletException e) {
             throw e;
+
         } catch (Exception e) {
             log.error(
                     "SLASH-GET-CARD-SENSITIVE-ERROR cardId={} err={}",
@@ -391,4 +564,45 @@ public class SlashClient {
 
 
 
+    // ===== COMMON =====
+    private String buildUrl(
+            String endpointTemplate,
+            String id
+    ) {
+        return UriComponentsBuilder
+                .fromHttpUrl(
+                        props.getBaseUrl()
+                                + endpointTemplate
+                )
+                .buildAndExpand(id)
+                .toUriString();
+    }
+
+    private HttpHeaders buildHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+
+        headers.setContentType(
+                MediaType.APPLICATION_JSON
+        );
+
+        headers.set(
+                "X-API-Key",
+                props.getApi().getKey()
+        );
+
+        return headers;
+    }
+
+    // ===== ENUM =====
+
+    @Getter
+    @RequiredArgsConstructor
+    private enum CardStatus {
+        ACTIVE("active"),
+        PAUSED("paused"),
+        INACTIVE("inactive"),
+        CLOSED("closed");
+
+        private final String value;
+    }
 }

@@ -3,6 +3,7 @@ package com.example.bank.repository.wallet;
 import com.example.bank.entity.wallet.WithdrawOrder;
 import com.example.bank.enums.wallet.WithdrawOrderStatus;
 import com.example.bank.projection.CashFlowProjection;
+import com.example.bank.repository.projection.AdminWithdrawStatisticsProjection;
 import com.example.bank.repository.projection.WithdrawDashboardProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
@@ -243,6 +244,51 @@ public interface WithdrawOrderRepository extends JpaRepository<WithdrawOrder, Lo
             @Param("userId") Long userId,
             @Param("start") Instant start,
             @Param("end") Instant end
+    );
+
+    @Query("""
+        SELECT
+            COALESCE(SUM(CASE
+                WHEN w.status = com.example.bank.enums.wallet.WithdrawOrderStatus.SUCCESS
+                THEN 1 ELSE 0 END), 0) AS successCount,
+
+            COALESCE(SUM(CASE
+                WHEN w.status = com.example.bank.enums.wallet.WithdrawOrderStatus.SUCCESS
+                THEN w.amount ELSE 0 END), 0) AS successAmount,
+
+            COALESCE(SUM(CASE
+                WHEN w.status IN (
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.PENDING_OTP,
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.PENDING_ADMIN
+                )
+                THEN 1 ELSE 0 END), 0) AS pendingCount,
+
+            COALESCE(SUM(CASE
+                WHEN w.status IN (
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.PENDING_OTP,
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.PENDING_ADMIN
+                )
+                THEN w.amount ELSE 0 END), 0) AS pendingAmount,
+
+            COALESCE(SUM(CASE
+                WHEN w.status IN (
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.FAILED,
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.EXPIRED
+                )
+                THEN 1 ELSE 0 END), 0) AS failedCount,
+
+            COALESCE(SUM(CASE
+                WHEN w.status IN (
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.FAILED,
+                    com.example.bank.enums.wallet.WithdrawOrderStatus.EXPIRED
+                )
+                THEN w.amount ELSE 0 END), 0) AS failedAmount
+
+        FROM WithdrawOrder w
+        WHERE w.userId = :userId
+        """)
+    AdminWithdrawStatisticsProjection getAdminUserStatistics(
+            @Param("userId") Long userId
     );
 
 }

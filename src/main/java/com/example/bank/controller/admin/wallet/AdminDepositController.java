@@ -72,4 +72,38 @@ public class AdminDepositController {
         );
     }
 
+
+    @GetMapping("/users/{userId}/orders")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<DepositOrderPageAdminResponse>> getUserDepositOrders(
+            @PathVariable Long userId,
+            @RequestParam(name = "order_no", required = false) String orderNo,
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) DepositOrderStatus status,
+            @RequestParam(name = "from_time", required = false) Instant fromTime,
+            @RequestParam(name = "to_time", required = false) Instant toTime,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        DepositOrderPageAdminResponse response =
+                service.getUserDepositOrders(
+                        userId,
+                        orderNo,
+                        address,
+                        status,
+                        fromTime,
+                        toTime,
+                        page
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(
+                                MessageKeys.ADMIN_DEPOSIT_ORDER_LIST_SUCCESS
+                        ),
+                        response
+                )
+        );
+    }
+
 }

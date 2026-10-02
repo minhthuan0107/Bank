@@ -356,6 +356,30 @@ public class MessageKeys {
     public static final String NEW_PASSWORD_SAME_AS_OLD =
             "new_password.same_as_old";
 
+    public static final String ADMIN_USER_FINANCIAL_STATISTICS_SUCCESS =
+            "admin.user.financial-statistics.success";
+
+    public static final String VALIDATION_WALLET_EXTERNAL_ADDRESS_NETWORK_REQUIRED =
+            "validation.wallet.external-address.network.required";
+
+    public static final String VALIDATION_WALLET_EXTERNAL_ADDRESS_NOT_BLANK =
+            "validation.wallet.external-address.not-blank";
+
+    public static final String WALLET_EXTERNAL_ADDRESS_CHECK_SUCCESS =
+            "wallet.external-address.check.success";
+
+    public static final String WALLET_EXTERNAL_ADDRESS_CREATE_SUCCESS =
+            "wallet.external-address.create.success";
+
+    public static final String WALLET_EXTERNAL_ADDRESS_ALREADY_EXISTS =
+            "wallet.external-address.already-exists";
+
+    public static final String WALLET_EXTERNAL_ADDRESS_INVALID =
+            "wallet.external-address.invalid";
+
+    public static final String WALLET_EXTERNAL_ADDRESS_REQUIRED =
+            "wallet.external-address.required";
+
 
 
 

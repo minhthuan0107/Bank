@@ -1,21 +1,17 @@
 package com.example.bank.service.wallet.user.impl;
 
 import com.example.bank.common.config.slash.SlashClient;
-import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.response.wallet.user.SlashTransactionResponse;
-import com.example.bank.entity.wallet.Card;
-import com.example.bank.entity.wallet.CardTransaction;
 import com.example.bank.enums.wallet.CardTransactionStatus;
-import com.example.bank.repository.wallet.CardTransactionRepository;
 import com.example.bank.service.wallet.user.SlashWebhookService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -23,143 +19,253 @@ import java.util.Set;
 @Slf4j
 public class SlashWebhookServiceImpl implements SlashWebhookService {
 
-    private final ObjectMapper objectMapper;
-    private final SlashClient slashClient;
-    private final CardTransactionPersistenceService persistenceService;
-
     private static final Set<String> SUPPORTED_EVENTS = Set.of(
             "aggregated_transaction.create",
             "aggregated_transaction.update"
     );
 
+    private final ObjectMapper objectMapper;
+    private final SlashClient slashClient;
+    private final CardTransactionPersistenceService persistenceService;
+
     @Override
-    @Async("webhookTaskExecutor")
-    public void handleAsync(String payload) {
+    public void handle(String payload) {
+        JsonNode node = parsePayload(payload);
+
+        if (node == null) {
+            return;
+        }
+
+        String event = node.path("event").asText(null);
+        String eventId = node.path("eventId").asText(null);
+        String entityId = node.path("entityId").asText(null);
+
+        if (!SUPPORTED_EVENTS.contains(event)) {
+            log.debug(
+                    "SLASH_WEBHOOK_IGNORED event={} eventId={} entityId={} reason=UNSUPPORTED_EVENT",
+                    event,
+                    eventId,
+                    entityId
+            );
+
+            return;
+        }
+
+        if (isBlank(eventId)) {
+            log.warn(
+                    "SLASH_WEBHOOK_INVALID event={} entityId={} reason=MISSING_EVENT_ID",
+                    event,
+                    entityId
+            );
+
+            return;
+        }
+
+        if (isBlank(entityId)) {
+            log.warn(
+                    "SLASH_WEBHOOK_INVALID event={} eventId={} reason=MISSING_ENTITY_ID",
+                    event,
+                    eventId
+            );
+
+            return;
+        }
+
+        /*
+         * Check nhanh trước khi gọi Slash API.
+         *
+         * Dùng bảng slash_webhook_events để kiểm tra eventId.
+         * PersistenceService sẽ check lại lần nữa bên trong transaction
+         * để chống race condition.
+         */
+        if (persistenceService.isEventProcessed(eventId)) {
+            log.debug(
+                    "SLASH_WEBHOOK_DUPLICATE event={} eventId={} entityId={}",
+                    event,
+                    eventId,
+                    entityId
+            );
+
+            return;
+        }
+
+        log.debug(
+                "SLASH_WEBHOOK_RECEIVED event={} eventId={} entityId={}",
+                event,
+                eventId,
+                entityId
+        );
+
+        /*
+         * Webhook chỉ là tín hiệu cho biết transaction đã thay đổi.
+         *
+         * Không dùng status trong webhook để thay đổi balance.
+         * Luôn GET lại transaction hiện tại từ Slash bằng entityId.
+         */
+        SlashTransactionResponse tx = slashClient.getTransaction(entityId);
+
+        if (tx == null || isBlank(tx.getId())) {
+            throw new IllegalStateException(
+                    "Slash returned invalid transaction for entityId=" + entityId
+            );
+        }
+
+        /*
+         * entityId của webhook phải đúng với transaction trả về từ Slash.
+         * Nếu không đúng thì không được xử lý balance.
+         */
+        if (!entityId.equals(tx.getId())) {
+            throw new IllegalStateException(
+                    "Slash transaction id mismatch. entityId="
+                            + entityId
+                            + ", transactionId="
+                            + tx.getId()
+            );
+        }
+
+        CardTransactionStatus mappedStatus = mapStatus(
+                tx.getStatus(),
+                tx.getDetailedStatus()
+        );
+
+        /*
+         * Các status chưa hỗ trợ như refund / returned / dispute
+         * hiện tại không được thay đổi balance.
+         */
+        if (mappedStatus == CardTransactionStatus.UNKNOWN) {
+            log.warn(
+                    "SLASH_TRANSACTION_UNKNOWN_STATUS event={} eventId={} txId={} status={} detailedStatus={}",
+                    event,
+                    eventId,
+                    tx.getId(),
+                    tx.getStatus(),
+                    tx.getDetailedStatus()
+            );
+
+            return;
+        }
+
+        persistenceService.upsertTransaction(
+                tx,
+                event,
+                eventId,
+                payload,
+                mappedStatus
+        );
+
+        log.debug(
+                "SLASH_WEBHOOK_PROCESSED event={} eventId={} txId={} status={} detailedStatus={} mappedStatus={}",
+                event,
+                eventId,
+                tx.getId(),
+                tx.getStatus(),
+                tx.getDetailedStatus(),
+                mappedStatus
+        );
+    }
+
+    private JsonNode parsePayload(String payload) {
+        if (payload == null || payload.isBlank()) {
+            log.warn(
+                    "SLASH_WEBHOOK_INVALID reason=EMPTY_PAYLOAD"
+            );
+
+            return null;
+        }
 
         try {
-            JsonNode node = objectMapper.readTree(payload);
-            String event    = node.path("event").asText(null);
-            String eventId  = node.path("eventId").asText(null);
-            String entityId = node.path("entityId").asText(null);
+            return objectMapper.readTree(payload);
 
-            log.info("event={} eventId={} entityId={}", event, eventId, entityId);
-            // Validate
-            if (!SUPPORTED_EVENTS.contains(event)) {
-                log.warn("Ignore event={}", event);
-                return;
-            }
-
-            if (entityId == null || entityId.isBlank()) {
-                log.warn("Missing entityId");
-                return;
-            }
-
-            // Fetch transaction (source of truth)
-            SlashTransactionResponse tx = getTransactionWithRetry(entityId);
-
-            if (tx == null || tx.getId() == null) {
-                log.error("Cannot fetch transaction entityId={}", entityId);
-                return;
-            }
-
-            log.info("txId={} status={} detailedStatus={}",
-                    tx.getId(), tx.getStatus(), tx.getDetailedStatus());
-
-            // Persist
-            persistenceService.upsertTransaction(
-                    tx,
-                    eventId,
-                    payload,
-                    mapStatus(tx.getStatus(),tx.getDetailedStatus())
+        } catch (JsonProcessingException e) {
+            log.warn(
+                    "SLASH_WEBHOOK_INVALID reason=INVALID_JSON message={}",
+                    e.getOriginalMessage()
             );
-        } catch (Exception e) {
-            log.error("WEBHOOK ERROR: {}", e.getMessage(), e);
+
+            return null;
         }
     }
 
-    // Retry chuẩn
-    private SlashTransactionResponse getTransactionWithRetry(String entityId) {
-        final int maxRetry = 3;
-        final long baseDelayMs = 300;
-        for (int attempt = 1; attempt <= maxRetry; attempt++) {
-            try {
-                log.debug("Fetch attempt {}/{} entityId={}", attempt, maxRetry, entityId);
-                SlashTransactionResponse tx = slashClient.getTransaction(entityId);
-                if (tx != null && tx.getId() != null) {
-                    // nếu FAILED thì return luôn (không cần retry)
-                    if ("failed".equalsIgnoreCase(tx.getStatus())) {
-                        return tx;
-                    }
-                    return tx;
-                }
-            } catch (Exception e) {
-                if (isClientError(e)) {
-                    log.error("Client error skip retry entityId={} err={}", entityId, e.getMessage());
-                    return null;
-                }
-                log.warn("Retry {}/{} failed entityId={} err={}",
-                        attempt, maxRetry, entityId, e.getMessage());
-            }
-            if (attempt < maxRetry) {
-                try {
-                    long delay = baseDelayMs * (1L << (attempt - 1)); // 300,600,1200
-                    Thread.sleep(delay);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return null;
-                }
-            }
-        }
-        log.error("Exhausted retries entityId={}", entityId);
-        return null;
-    }
+    private CardTransactionStatus mapStatus(
+            String status,
+            String detailedStatus
+    ) {
+        String baseStatus = normalize(status);
+        String detailStatus = normalize(detailedStatus);
 
-    private boolean isClientError(Exception e) {
-        return e.getMessage() != null && e.getMessage().contains("400");
-    }
-
-    private CardTransactionStatus mapStatus(String status, String detailedStatus) {
-        String s = status != null ? status.trim().toLowerCase() : "";
-        String d = detailedStatus != null ? detailedStatus.trim().toLowerCase() : "";
-
-        // Ưu tiên detailedStatus trước
-        return switch (d) {
+        /*
+         * detailedStatus được ưu tiên vì mô tả trạng thái
+         * nghiệp vụ cụ thể hơn base status.
+         */
+        return switch (detailStatus) {
             case "pending" ->
                     CardTransactionStatus.PENDING;
 
             case "settled" ->
                     CardTransactionStatus.POSTED;
 
-            case "declined", "failed", "canceled" ->
+            case "declined",
+                 "failed",
+                 "canceled",
+                 "cancelled" ->
+                    CardTransactionStatus.FAILED;
+
+            /*
+             * Reversal của transaction.
+             * Transaction không còn giữ tiền trong local balance.
+             */
+            case "reversed" ->
+                    CardTransactionStatus.REVERSED;
+
+            /*
+             * Chưa hỗ trợ các nghiệp vụ này.
+             *
+             * Không fallback xuống base status vì ví dụ:
+             * baseStatus = posted
+             * detailedStatus = refund
+             *
+             * Nếu fallback thành POSTED có thể làm sai balance.
+             */
+            case "refund",
+                 "returned",
+                 "dispute" ->
+                    CardTransactionStatus.UNKNOWN;
+
+            default ->
+                    mapBaseStatus(baseStatus);
+        };
+    }
+
+    private CardTransactionStatus mapBaseStatus(String status) {
+        return switch (status) {
+            case "pending" ->
+                    CardTransactionStatus.PENDING;
+
+            case "posted",
+                 "settled" ->
+                    CardTransactionStatus.POSTED;
+
+            case "failed",
+                 "declined",
+                 "canceled",
+                 "cancelled" ->
                     CardTransactionStatus.FAILED;
 
             case "reversed" ->
                     CardTransactionStatus.REVERSED;
 
-            // Hiện tại chưa xử lý refund/returned/dispute
-            case "refund", "returned", "dispute" ->
+            default ->
                     CardTransactionStatus.UNKNOWN;
-
-            default -> switch (s) {
-                case "pending" ->
-                        CardTransactionStatus.PENDING;
-
-                case "settled" ->
-                        CardTransactionStatus.POSTED;
-
-                case "declined", "failed", "canceled" ->
-                        CardTransactionStatus.FAILED;
-
-                case "reversed" ->
-                        CardTransactionStatus.REVERSED;
-
-                case "refund", "returned", "dispute" ->
-                        CardTransactionStatus.UNKNOWN;
-
-                default ->
-                        CardTransactionStatus.UNKNOWN;
-            };
         };
     }
 
+    private String normalize(String value) {
+        return value == null
+                ? ""
+                : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
 }

@@ -3,6 +3,7 @@ package com.example.bank.repository.wallet;
 import com.example.bank.entity.wallet.CardTransaction;
 import com.example.bank.enums.wallet.CardTransactionStatus;
 import com.example.bank.projection.UserSpentProjection;
+import com.example.bank.repository.projection.AdminCardTransactionStatisticsProjection;
 import io.lettuce.core.dynamic.annotation.Param;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -98,5 +99,47 @@ public interface CardTransactionRepository extends JpaRepository<CardTransaction
             @Param("toTime") Instant toTime,
             Pageable pageable
     );
+
+    @Query("""
+        SELECT
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.POSTED
+                THEN 1 ELSE 0 END), 0) AS postedCount,
+
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.POSTED
+                THEN t.amount ELSE 0 END), 0) AS postedAmount,
+
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.PENDING
+                THEN 1 ELSE 0 END), 0) AS pendingCount,
+
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.PENDING
+                THEN t.amount ELSE 0 END), 0) AS pendingAmount,
+
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.FAILED
+                THEN 1 ELSE 0 END), 0) AS failedCount,
+
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.FAILED
+                THEN t.amount ELSE 0 END), 0) AS failedAmount,
+
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.REVERSED
+                THEN 1 ELSE 0 END), 0) AS reversedCount,
+
+            COALESCE(SUM(CASE
+                WHEN t.status = com.example.bank.enums.wallet.CardTransactionStatus.REVERSED
+                THEN t.amount ELSE 0 END), 0) AS reversedAmount
+
+        FROM CardTransaction t
+        WHERE t.userId = :userId
+        """)
+    AdminCardTransactionStatisticsProjection getAdminUserStatistics(
+            @Param("userId") Long userId
+    );
+
 
 }

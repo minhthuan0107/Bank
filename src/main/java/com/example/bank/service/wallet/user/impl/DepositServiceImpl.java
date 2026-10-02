@@ -66,6 +66,7 @@ public class DepositServiceImpl implements DepositService {
             "image/webp"
     );
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final WalletExternalAddressRepository walletExternalAddressRepository;
 
 
     @Override
@@ -170,6 +171,17 @@ public class DepositServiceImpl implements DepositService {
 
         checkDepositLimit(userId);
 
+        // ===== GET USER EXTERNAL ADDRESS =====
+        WalletExternalAddress externalAddress =
+                walletExternalAddressRepository
+                        .findByUserId(userId)
+                        .orElseThrow(() ->
+                                new WalletException(
+                                        MessageKeys.WALLET_EXTERNAL_ADDRESS_REQUIRED,
+                                        HttpStatus.BAD_REQUEST
+                                )
+                        );
+
         WalletCurrencySettings settings = depositSettingsRepository
                 .findByCurrency(request.getCurrency())
                 .orElseThrow(() ->
@@ -186,7 +198,7 @@ public class DepositServiceImpl implements DepositService {
             );
         }
 
-        DepositAddress address = depositAddressRepository
+        DepositAddress depositAddress = depositAddressRepository
                 .findFirstByCurrencyAndNetworkAndStatus(
                         request.getCurrency(),
                         request.getNetwork(),
@@ -211,8 +223,16 @@ public class DepositServiceImpl implements DepositService {
                 userId,
                 orderNo,
                 request.getCurrency(),
-                request.getNetwork(),
-                address.getAddress(),
+
+                // Network cố định của user
+                externalAddress.getNetwork().name(),
+
+                // Địa chỉ Bank nhận tiền
+                depositAddress.getAddress(),
+
+                // Địa chỉ user gửi tiền
+                externalAddress.getAddress(),
+
                 request.getAmount(),
                 fee,
                 expectedAmount
@@ -229,7 +249,7 @@ public class DepositServiceImpl implements DepositService {
                 order.getAmount(),
                 order.getFee(),
                 order.getExpectedAmount(),
-                order.getAddress()
+                order.getSourceAddress()
         ));
 
         return CreateDepositOrderResponse.from(order);

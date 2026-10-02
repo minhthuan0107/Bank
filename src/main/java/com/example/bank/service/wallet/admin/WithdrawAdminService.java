@@ -21,4 +21,14 @@ public interface WithdrawAdminService {
             Instant toTime,
             int page
     );
+
+    WithdrawOrderPageAdminResponse getUserWithdrawOrders(
+            Long userId,
+            String orderNo,
+            String address,
+            WithdrawOrderStatus status,
+            Instant fromTime,
+            Instant toTime,
+            int page
+    );
 }

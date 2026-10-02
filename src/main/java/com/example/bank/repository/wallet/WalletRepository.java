@@ -96,20 +96,29 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     );
 
     @Query(value = """
-    SELECT 
-        w.id AS walletId,
-        COALESCE(w.available_balance, 0) AS balance,
-        COALESCE(s.min_withdraw_amount, 0) AS minimumWithdrawalAmount,
-        w.currency AS currency
-    FROM wallets w
-    JOIN wallet_currency_settings s 
-        ON s.currency = w.currency
-       AND s.status = 'ACTIVE'
-    WHERE w.user_id = :userId
-      AND w.status = 'ACTIVE'
-    LIMIT 1
-    """, nativeQuery = true)
-    Optional<WithdrawSummaryProjection>  findWithdrawSummaryByUserId(
+        SELECT
+            w.id AS walletId,
+            COALESCE(w.available_balance, 0) AS balance,
+            COALESCE(s.min_withdraw_amount, 0) AS minimumWithdrawalAmount,
+            w.currency AS currency,
+            wea.network AS network,
+            wea.address AS address
+        FROM wallets w
+        JOIN wallet_currency_settings s
+            ON s.currency = w.currency
+           AND s.status = 'ACTIVE'
+        LEFT JOIN wallet_external_addresses wea
+            ON wea.wallet_id = w.id
+        WHERE w.user_id = :userId
+          AND w.status = 'ACTIVE'
+        LIMIT 1
+        """, nativeQuery = true)
+    Optional<WithdrawSummaryProjection> findWithdrawSummaryByUserId(
             @Param("userId") Long userId
     );
+
+    Optional<Wallet> findByUserId(Long userId);
+
+
+
 }

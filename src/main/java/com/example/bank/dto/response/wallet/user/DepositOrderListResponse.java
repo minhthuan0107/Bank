@@ -45,7 +45,7 @@ public class DepositOrderListResponse {
                 .orderNo(order.getOrderNo())
                 .currency(order.getCurrency())
                 .network(order.getNetwork())
-                .address(order.getAddress())
+                .address(order.getSourceAddress())
                 .amount(order.getAmount().stripTrailingZeros())
                 .expectedAmount(order.getExpectedAmount().stripTrailingZeros())
                 .status(order.getStatus().name())
