@@ -26,4 +26,12 @@ public interface WalletExternalAddressRepository
     Optional<WalletExternalAddress> findByUserId(
             @Param("userId") Long userId
     );
+
+    @Query(value = """
+        SELECT COUNT(*)
+        FROM wallet_external_addresses wea
+        JOIN wallets w ON w.id = wea.wallet_id
+        WHERE w.user_id = :userId
+        """, nativeQuery = true)
+    long countByUserId(@Param("userId") Long userId);
 }

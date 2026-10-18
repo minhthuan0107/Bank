@@ -2,7 +2,6 @@ package com.example.bank.entity.wallet;
 
 
 import com.example.bank.common.model.BaseEntity;
-import com.example.bank.enums.wallet.Stablecoin;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,19 +9,14 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "wallet_currency_settings")
+@Table(name = "wallet_settings")
 @Getter
 @Setter
-public class WalletCurrencySettings extends BaseEntity {
+public class WalletSettings extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "id", nullable = false)
     private Long id;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "currency", nullable = false, length = 10, unique = true)
-    private Stablecoin currency;
 
     /**
      * Phí nạp tiền theo phần trăm.

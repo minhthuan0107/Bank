@@ -15,19 +15,11 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 public class CreateDepositOrderRequest {
-
-    @NotNull(message = "{" + MessageKeys.VALIDATION_CURRENCY_NOT_NULL + "}")
-    @JsonProperty("currency")
-    private Stablecoin currency;
-
-    @NotNull(message = "{" + MessageKeys.VALIDATION_AMOUNT_NOT_NULL + "}")
-    @DecimalMin(value = "0.0", message = "{" + MessageKeys.VALIDATION_AMOUNT_MIN + "}")
-    @JsonProperty("amount")
+    @NotNull(message = "{" + MessageKeys.VALIDATION_DEPOSIT_AMOUNT_NOT_NULL + "}")
+    @DecimalMin(
+            value = "0.0",
+            inclusive = false,
+            message = "{" + MessageKeys.VALIDATION_DEPOSIT_AMOUNT_MIN + "}"
+    )
     private BigDecimal amount;
-
-    @NotBlank(message = "{" + MessageKeys.VALIDATION_NETWORK_NOT_BLANK + "}")
-    @Size(max = 20, message = "{" + MessageKeys.VALIDATION_NETWORK_MAX_LENGTH + "}")
-    @JsonProperty("network")
-    private String network;
-
 }

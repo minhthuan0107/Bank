@@ -5,4 +5,6 @@ import com.example.bank.dto.response.wallet.user.DashboardResponse;
 public interface WalletService {
     DashboardResponse getDashboard(Long userId);
 
+    boolean isWalletQualified(Long userId);
+
 }

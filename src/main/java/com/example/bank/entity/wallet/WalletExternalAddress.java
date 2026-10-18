@@ -2,6 +2,7 @@ package com.example.bank.entity.wallet;
 
 import com.example.bank.common.model.BaseEntity;
 import com.example.bank.enums.wallet.CryptoNetwork;
+import com.example.bank.enums.wallet.Stablecoin;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,6 +31,11 @@ public class WalletExternalAddress extends BaseEntity {
     // Mỗi wallet chỉ có đúng một external address.
     @Column(name = "wallet_id", nullable = false)
     private Long walletId;
+
+    // Loại tiền mà người dùng đăng ký.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", nullable = false, length = 10)
+    private Stablecoin currency;
 
     // Network user đã chọn:
     // TRC20 / BEP20 / ETH

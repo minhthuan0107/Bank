@@ -19,7 +19,7 @@ public class WalletAdminServiceImpl implements WalletAdminService {
     public void createWallet(Long userId) {
         Wallet wallet = Wallet.builder()
                 .userId(userId)
-                .currency(Stablecoin.USDT)
+                .currency(Stablecoin.USD)
                 // tổng tài sản
                 .totalBalance(BigDecimal.ZERO)
                 // tiền đã nằm trong card

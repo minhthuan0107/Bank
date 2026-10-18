@@ -29,9 +29,6 @@ public class DepositAddress extends BaseEntity {
     @Column(name = "address", nullable = false, length = 255)
     private String address;
 
-    @Column(name = "display_order")
-    private Integer displayOrder;
-
     @Column(name = "status", length = 20)
     private String status;
 

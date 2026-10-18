@@ -7,10 +7,8 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 @Builder
-public record WalletCurrencySettingsResponse(
+public record WalletSettingsResponse(
         Long id,
-
-        Stablecoin currency,
 
         @JsonProperty("deposit_fee_percent")
         BigDecimal depositFeePercent,

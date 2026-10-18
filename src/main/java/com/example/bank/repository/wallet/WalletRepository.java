@@ -31,6 +31,18 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
             @Param("userId") Long userId
     );
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT w
+        FROM Wallet w
+        WHERE w.userId = :userId
+          AND w.currency = :currency
+        """)
+    Optional<Wallet> findByUserIdAndCurrencyForUpdate(
+            @Param("userId") Long userId,
+            @Param("currency") Stablecoin currency
+    );
+
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

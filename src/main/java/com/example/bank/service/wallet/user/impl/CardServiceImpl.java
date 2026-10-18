@@ -47,7 +47,7 @@ public class CardServiceImpl implements CardService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final CardFundingTransactionRepository transactionRepository;
     private final UserRepository userRepository;
-    private final WalletCurrencySettingsRepository walletCurrencySettingsRepository;
+    private final WalletSettingsRepository walletSettingsRepository;
     private static final int DEFAULT_PAGE_SIZE = 10;
 
 
@@ -74,10 +74,10 @@ public class CardServiceImpl implements CardService {
 
             // ===== CHECK MIN CARD FUNDING AMOUNT =====
             // Số tiền tạo/nạp thẻ không được nhỏ hơn cấu hình tối thiểu.
-            WalletCurrencySettings settings = walletCurrencySettingsRepository
-                    .findByCurrencyAndStatus(Stablecoin.USDT, "ACTIVE")
+            WalletSettings settings = walletSettingsRepository
+                    .findByIdAndStatus(1L, "ACTIVE")
                     .orElseThrow(() -> new WalletException(
-                            MessageKeys.WALLET_CURRENCY_SETTINGS_NOT_FOUND,
+                            MessageKeys.WALLET_SETTINGS_NOT_FOUND,
                             HttpStatus.NOT_FOUND
                     ));
 

@@ -27,7 +27,4 @@ public class CreateDepositAddressRequest {
     @JsonProperty("address")
     private String address;
 
-    @NotNull(message = "{" + MessageKeys.VALIDATION_DISPLAY_ORDER_NOT_NULL + "}")
-    @JsonProperty("display_order")
-    private Integer displayOrder;
 }

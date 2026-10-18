@@ -47,6 +47,9 @@ public class WithdrawOrder extends BaseEntity {
     @Column(name = "admin_note")
     private String adminNote;
 
+    @Column(name = "otp_expires_at")
+    private Instant otpExpiresAt;
+
 
     public static WithdrawOrder create(
             Long userId,

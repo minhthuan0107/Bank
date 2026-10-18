@@ -16,21 +16,11 @@ import java.math.BigDecimal;
 @Setter
 public class CreateWithdrawOrderRequest {
 
-    @NotNull(message = "{" + MessageKeys.VALIDATION_CURRENCY_NOT_NULL + "}")
-    @JsonProperty("currency")
-    private Stablecoin currency;
-
-    @NotBlank(message = "{" + MessageKeys.VALIDATION_NETWORK_NOT_BLANK + "}")
-    @Size(max = 20, message = "{" + MessageKeys.VALIDATION_NETWORK_MAX_LENGTH + "}")
-    @JsonProperty("network")
-    private String network;
-
-    @NotBlank(message = "{" + MessageKeys.VALIDATION_WITHDRAW_ADDRESS_NOT_BLANK + "}")
-    @Size(max = 255, message = "{" + MessageKeys.VALIDATION_WITHDRAW_ADDRESS_MAX_LENGTH + "}")
-    @JsonProperty("to_address")
-    private String toAddress;
-
-    @NotNull(message = "{" + MessageKeys.VALIDATION_AMOUNT_NOT_NULL + "}")
-    @JsonProperty("amount")
+    @NotNull(message = "{" + MessageKeys.VALIDATION_WITHDRAW_AMOUNT_NOT_NULL + "}")
+    @DecimalMin(
+            value = "0.0",
+            inclusive = false,
+            message = "{" + MessageKeys.VALIDATION_WITHDRAW_AMOUNT_MIN + "}"
+    )
     private BigDecimal amount;
 }
