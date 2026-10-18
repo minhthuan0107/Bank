@@ -112,16 +112,17 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
             w.id AS walletId,
             COALESCE(w.available_balance, 0) AS balance,
             COALESCE(s.min_withdraw_amount, 0) AS minimumWithdrawalAmount,
-            w.currency AS currency,
+            wea.currency AS withdrawCurrency,
             wea.network AS network,
             wea.address AS address
         FROM wallets w
-        JOIN wallet_currency_settings s
-            ON s.currency = w.currency
+        INNER JOIN wallet_settings s
+            ON s.id = 1
            AND s.status = 'ACTIVE'
         LEFT JOIN wallet_external_addresses wea
             ON wea.wallet_id = w.id
         WHERE w.user_id = :userId
+          AND w.currency = 'USD'
           AND w.status = 'ACTIVE'
         LIMIT 1
         """, nativeQuery = true)

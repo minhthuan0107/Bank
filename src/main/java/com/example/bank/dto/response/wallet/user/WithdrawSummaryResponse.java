@@ -20,7 +20,8 @@ public class WithdrawSummaryResponse {
         @JsonProperty("minimum_withdrawal_amount")
         private BigDecimal minimumWithdrawalAmount;
 
-        private String currency;
+        @JsonProperty("withdraw_currency")
+        private Stablecoin withdrawCurrency;
 
         private CryptoNetwork network;
 

@@ -13,7 +13,7 @@ public interface WithdrawSummaryProjection {
 
     BigDecimal getMinimumWithdrawalAmount();
 
-    String getCurrency();
+    String getWithdrawCurrency();
 
     String getNetwork();
 
