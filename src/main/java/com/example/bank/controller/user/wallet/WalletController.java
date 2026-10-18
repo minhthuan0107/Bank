@@ -151,4 +151,21 @@ public class WalletController {
                 )
         );
     }
+
+    @GetMapping("/qualified")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Boolean>> isWalletQualified(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        boolean qualified =
+                walletService.isWalletQualified(currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        null,
+                        qualified
+                )
+        );
+    }
 }

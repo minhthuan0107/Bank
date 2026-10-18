@@ -12,9 +12,11 @@ import java.time.Instant;
 import java.util.List;
 
 public interface DepositService {
-    DepositConfigResponse getDepositConfig(Stablecoin currency , Long userId);
+    DepositConfigResponse getDepositConfig(Long userId);
 
-    DepositPreviewResponse previewDeposit(DepositPreviewRequest request);
+    DepositPreviewResponse previewDeposit(DepositPreviewRequest request,
+                                          Long userId
+    );
 
     CreateDepositOrderResponse createDepositOrder(
             CreateDepositOrderRequest request,

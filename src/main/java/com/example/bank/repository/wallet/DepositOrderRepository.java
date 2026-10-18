@@ -2,6 +2,7 @@ package com.example.bank.repository.wallet;
 
 import com.example.bank.entity.wallet.DepositOrder;
 import com.example.bank.enums.wallet.DepositOrderStatus;
+import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.projection.CashFlowProjection;
 import com.example.bank.repository.projection.AdminDepositStatisticsProjection;
 import com.example.bank.repository.projection.DepositDashboardProjection;
@@ -237,6 +238,19 @@ public interface DepositOrderRepository extends JpaRepository<DepositOrder, Long
         """)
     AdminDepositStatisticsProjection getAdminUserStatistics(
             @Param("userId") Long userId
+    );
+
+
+    boolean existsByUserIdAndStatus(
+            Long userId,
+            DepositOrderStatus status
+    );
+
+    boolean existsByCurrencyAndNetworkAndDestinationAddressAndStatus(
+            Stablecoin currency,
+            String network,
+            String destinationAddress,
+            DepositOrderStatus status
     );
 
 }

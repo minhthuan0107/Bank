@@ -15,9 +15,6 @@ import java.math.BigDecimal;
 @Builder
 public class DepositPreviewResponse {
 
-    @JsonProperty("payee_name")
-    private String payeeName;
-
     @JsonProperty("network")
     private String network;
 
@@ -37,21 +34,18 @@ public class DepositPreviewResponse {
     private Stablecoin currency;
 
     public static DepositPreviewResponse from(
-            User admin,
             DepositAddress address,
             DepositPreviewRequest request,
             BigDecimal fee,
             BigDecimal expectedAmount
     ) {
         return DepositPreviewResponse.builder()
-                .payeeName(admin.getUsername())
                 .network(address.getNetwork())
                 .address(address.getAddress())
                 .amount(request.getAmount())
                 .fee(fee.stripTrailingZeros())
                 .expectedAmount(expectedAmount.stripTrailingZeros())
-                .currency(request.getCurrency())
+                .currency(address.getCurrency())
                 .build();
     }
-
 }

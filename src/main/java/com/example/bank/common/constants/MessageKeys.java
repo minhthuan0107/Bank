@@ -379,6 +379,31 @@ public class MessageKeys {
 
     public static final String WALLET_EXTERNAL_ADDRESS_REQUIRED =
             "wallet.external-address.required";
+    public static final String DEPOSIT_ADDRESS_INVALID_NETWORK =
+            "deposit.address.invalid-network";
+    public static final String VALIDATION_WALLET_EXTERNAL_ADDRESS_CURRENCY_REQUIRED =
+            "validation.wallet.external-address.currency.required";
+
+    public static final String WALLET_EXTERNAL_ADDRESS_INVALID_NETWORK =
+            "wallet.external-address.invalid-network";
+
+    public static final String DEPOSIT_ADDRESS_HAS_PENDING_ORDERS =
+            "deposit.address.has-pending-orders";
+
+    public static final String WALLET_SETTINGS_NOT_FOUND =
+            "wallet.settings.not-found";
+
+    public static final String VALIDATION_DEPOSIT_AMOUNT_NOT_NULL =
+            "validation.deposit.amount.not-null";
+
+    public static final String VALIDATION_DEPOSIT_AMOUNT_MIN =
+            "validation.deposit.amount.min";
+
+    public static final String WITHDRAW_ORDER_PENDING_ADMIN =
+            "withdraw.order.pending-admin";
+    public static final String VALIDATION_WITHDRAW_AMOUNT_NOT_NULL =
+            "validation.withdraw.amount.not-null";
+
 
 
 

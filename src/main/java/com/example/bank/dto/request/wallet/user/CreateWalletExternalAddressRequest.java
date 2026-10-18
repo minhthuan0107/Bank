@@ -2,6 +2,7 @@ package com.example.bank.dto.request.wallet.user;
 
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.enums.wallet.CryptoNetwork;
+import com.example.bank.enums.wallet.Stablecoin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -10,6 +11,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateWalletExternalAddressRequest {
+
+    @NotNull(
+            message = "{" + MessageKeys.VALIDATION_WALLET_EXTERNAL_ADDRESS_CURRENCY_REQUIRED + "}"
+    )
+    private Stablecoin currency;
 
     @NotNull(
             message = "{" + MessageKeys.VALIDATION_WALLET_EXTERNAL_ADDRESS_NETWORK_REQUIRED + "}"

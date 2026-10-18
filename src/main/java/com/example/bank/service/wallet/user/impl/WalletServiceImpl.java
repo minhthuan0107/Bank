@@ -4,14 +4,18 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.response.wallet.user.DashboardResponse;
 import com.example.bank.entity.user.User;
+import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.repository.projection.WalletSummaryProjection;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.CardRepository;
+import com.example.bank.repository.wallet.DepositOrderRepository;
+import com.example.bank.repository.wallet.WalletExternalAddressRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.service.wallet.user.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -21,6 +25,8 @@ public class WalletServiceImpl implements WalletService {
     private final WalletRepository walletRepository;
     private final CardRepository cardRepository;
     private final UserRepository userRepository;
+    private final DepositOrderRepository depositOrderRepository;
+    private final WalletExternalAddressRepository walletExternalAddressRepository;
 
     @Override
     public DashboardResponse getDashboard(Long userId) {
@@ -42,5 +48,21 @@ public class WalletServiceImpl implements WalletService {
                 .cardOpeningLimit(cardLimit)
                 .activatedCardCount(cardCount)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isWalletQualified(Long userId) {
+        boolean hasExternalAddress =
+                walletExternalAddressRepository.countByUserId(userId) > 0;
+
+        if (!hasExternalAddress) {
+            return false;
+        }
+
+        return depositOrderRepository.existsByUserIdAndStatus(
+                userId,
+                DepositOrderStatus.SUCCESS
+        );
     }
 }

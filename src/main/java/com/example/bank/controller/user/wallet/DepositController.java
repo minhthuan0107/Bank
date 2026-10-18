@@ -35,12 +35,11 @@ public class DepositController {
     @GetMapping("/config")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<DepositConfigResponse>> getDepositConfig(
-            @RequestParam Stablecoin currency,
             @AuthenticationPrincipal UserDetailsImpl currentUser
 
     ) {
         DepositConfigResponse response =
-                depositService.getDepositConfig(currency,currentUser.getId());
+                depositService.getDepositConfig(currentUser.getId());
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -54,11 +53,12 @@ public class DepositController {
     @PostMapping("/preview")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<DepositPreviewResponse>> previewDeposit(
-            @Valid @RequestBody DepositPreviewRequest request
+            @Valid @RequestBody DepositPreviewRequest request,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
     ) {
 
         DepositPreviewResponse response =
-                depositService.previewDeposit(request);
+                depositService.previewDeposit(request, currentUser.getId());
 
         return ResponseEntity.ok(
                 ApiResponse.success(

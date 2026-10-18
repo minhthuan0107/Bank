@@ -4,14 +4,12 @@ import com.example.bank.common.config.r2.R2Service;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.constants.RedisKeys;
 import com.example.bank.common.exception.auth.OtpException;
-import com.example.bank.common.exception.user.UserException;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.CreateDepositOrderRequest;
 import com.example.bank.dto.request.wallet.user.DepositPreviewRequest;
 import com.example.bank.dto.response.wallet.user.*;
-import com.example.bank.entity.user.User;
 import com.example.bank.entity.wallet.*;
-import com.example.bank.enums.user.AccountStatus;
+import com.example.bank.enums.wallet.CryptoNetwork;
 import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.event.DepositOrderCreatedEvent;
@@ -47,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class DepositServiceImpl implements DepositService {
 
-    private final WalletCurrencySettingsRepository depositSettingsRepository;
+    private final WalletSettingsRepository walletSettingsRepository;
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
     private final DepositAddressRepository depositAddressRepository;
@@ -70,47 +68,48 @@ public class DepositServiceImpl implements DepositService {
 
 
     @Override
-    public DepositConfigResponse getDepositConfig(Stablecoin currency , Long userId) {
-        WalletCurrencySettings settings = depositSettingsRepository
-                .findByCurrencyAndStatus(currency, "ACTIVE")
-                .orElseThrow(() ->
-                        new WalletException(
-                                MessageKeys.DEPOSIT_SETTINGS_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
-                );
+    @Transactional(readOnly = true)
+    public DepositConfigResponse getDepositConfig(Long userId) {
 
+        // Lấy cấu hình chung
+        WalletSettings settings = walletSettingsRepository
+                .findByIdAndStatus(1L, "ACTIVE")
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_SETTINGS_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        // Lấy Wallet USD của user
         Wallet wallet = walletRepository
-                .findByUserIdAndCurrency(userId, currency)
-                .orElseThrow(() ->
-                        new WalletException(
-                                MessageKeys.WALLET_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
-                );
+                .findByUserIdAndCurrency(userId, Stablecoin.USD)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
 
         return DepositConfigResponse.builder()
-                .availableBalance(wallet.getAvailableBalance()) // số dư thực tế có thể dùng
+                .availableBalance(wallet.getAvailableBalance())
                 .feePercent(settings.getDepositFeePercent())
                 .minAmount(settings.getMinDepositAmount())
                 .build();
     }
 
     @Override
-    public DepositPreviewResponse previewDeposit(DepositPreviewRequest request) {
-        String network = request.getNetwork() != null
-                ? request.getNetwork()
-                : "TRC20";
+    @Transactional(readOnly = true)
+    public DepositPreviewResponse previewDeposit(
+            DepositPreviewRequest request,
+            Long userId
+    ) {
 
-        WalletCurrencySettings settings = depositSettingsRepository
-                .findByCurrency(request.getCurrency())
-                .orElseThrow(() ->
-                        new WalletException(
-                                MessageKeys.DEPOSIT_SETTINGS_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
-                );
+        // ===== GET WALLET SETTINGS =====
+        WalletSettings settings = walletSettingsRepository
+                .findByIdAndStatus(1L, "ACTIVE")
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_SETTINGS_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
 
+        // ===== CHECK MINIMUM DEPOSIT =====
         if (request.getAmount().compareTo(settings.getMinDepositAmount()) < 0) {
             throw new WalletException(
                     MessageKeys.DEPOSIT_AMOUNT_BELOW_MIN,
@@ -118,43 +117,59 @@ public class DepositServiceImpl implements DepositService {
             );
         }
 
+        // ===== GET USER EXTERNAL ADDRESS =====
+        WalletExternalAddress externalAddress = walletExternalAddressRepository
+                .findByUserId(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_EXTERNAL_ADDRESS_REQUIRED,
+                        HttpStatus.BAD_REQUEST
+                ));
 
+        Stablecoin currency = externalAddress.getCurrency();
+        CryptoNetwork network = externalAddress.getNetwork();
 
-        DepositAddress address = depositAddressRepository
+        // ===== VALIDATE CURRENCY AND NETWORK =====
+        boolean valid =
+                (currency == Stablecoin.USDT
+                        && (network == CryptoNetwork.TRC20
+                        || network == CryptoNetwork.BEP20))
+                        ||
+                        (currency == Stablecoin.USDC
+                                && network == CryptoNetwork.BASE);
+
+        if (!valid) {
+            throw new WalletException(
+                    MessageKeys.WALLET_EXTERNAL_ADDRESS_INVALID_NETWORK,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // ===== GET MATCHING BANK DEPOSIT ADDRESS =====
+        DepositAddress depositAddress = depositAddressRepository
                 .findFirstByCurrencyAndNetworkAndStatus(
-                        request.getCurrency(),
-                        network,
+                        currency,
+                        network.name(),
                         "ACTIVE"
                 )
-                .orElseThrow(() ->
-                        new WalletException(
-                                MessageKeys.DEPOSIT_ADDRESS_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.DEPOSIT_ADDRESS_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        // ===== CALCULATE FEE =====
+        BigDecimal fee = request.getAmount()
+                .multiply(settings.getDepositFeePercent())
+                .divide(
+                        BigDecimal.valueOf(100),
+                        4,
+                        RoundingMode.HALF_UP
                 );
 
-        // Tính tiền phí
-        BigDecimal fee =
-                request.getAmount()
-                        .multiply(settings.getDepositFeePercent())
-                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+        BigDecimal expectedAmount = request.getAmount().subtract(fee);
 
-        //Số tiền nhận được
-        BigDecimal expectedAmount =
-                request.getAmount().subtract(fee);
-
-        User admin = userRepository
-                .findActiveAdmin(AccountStatus.ACTIVE)
-                .orElseThrow(() ->
-                        new UserException(
-                                MessageKeys.ADMIN_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
-                );
 
         return DepositPreviewResponse.from(
-                admin,
-                address,
+                depositAddress,
                 request,
                 fee,
                 expectedAmount
@@ -162,35 +177,52 @@ public class DepositServiceImpl implements DepositService {
     }
 
 
-    @Transactional
     @Override
+    @Transactional
     public CreateDepositOrderResponse createDepositOrder(
             CreateDepositOrderRequest request,
             Long userId
     ) {
 
+        // ===== CHECK DEPOSIT LIMIT =====
         checkDepositLimit(userId);
 
+        // ===== GET WALLET SETTINGS =====
+        WalletSettings settings = walletSettingsRepository
+                .findByIdAndStatus(1L, "ACTIVE")
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_SETTINGS_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
         // ===== GET USER EXTERNAL ADDRESS =====
-        WalletExternalAddress externalAddress =
-                walletExternalAddressRepository
-                        .findByUserId(userId)
-                        .orElseThrow(() ->
-                                new WalletException(
-                                        MessageKeys.WALLET_EXTERNAL_ADDRESS_REQUIRED,
-                                        HttpStatus.BAD_REQUEST
-                                )
-                        );
+        WalletExternalAddress externalAddress = walletExternalAddressRepository
+                .findByUserId(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_EXTERNAL_ADDRESS_REQUIRED,
+                        HttpStatus.BAD_REQUEST
+                ));
 
-        WalletCurrencySettings settings = depositSettingsRepository
-                .findByCurrency(request.getCurrency())
-                .orElseThrow(() ->
-                        new WalletException(
-                                MessageKeys.DEPOSIT_SETTINGS_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
-                );
+        Stablecoin currency = externalAddress.getCurrency();
+        CryptoNetwork network = externalAddress.getNetwork();
 
+        // ===== VALIDATE CURRENCY AND NETWORK =====
+        boolean valid =
+                (currency == Stablecoin.USDT
+                        && (network == CryptoNetwork.TRC20
+                        || network == CryptoNetwork.BEP20))
+                        ||
+                        (currency == Stablecoin.USDC
+                                && network == CryptoNetwork.BASE);
+
+        if (!valid) {
+            throw new WalletException(
+                    MessageKeys.WALLET_EXTERNAL_ADDRESS_INVALID_NETWORK,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // ===== CHECK MINIMUM DEPOSIT AMOUNT =====
         if (request.getAmount().compareTo(settings.getMinDepositAmount()) < 0) {
             throw new WalletException(
                     MessageKeys.DEPOSIT_AMOUNT_BELOW_MIN,
@@ -198,59 +230,68 @@ public class DepositServiceImpl implements DepositService {
             );
         }
 
+        // ===== GET MATCHING BANK DEPOSIT ADDRESS =====
         DepositAddress depositAddress = depositAddressRepository
                 .findFirstByCurrencyAndNetworkAndStatus(
-                        request.getCurrency(),
-                        request.getNetwork(),
+                        currency,
+                        network.name(),
                         "ACTIVE"
                 )
-                .orElseThrow(() ->
-                        new WalletException(
-                                MessageKeys.DEPOSIT_ADDRESS_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
-                );
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.DEPOSIT_ADDRESS_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
 
+        // ===== CALCULATE DEPOSIT FEE =====
         BigDecimal fee = request.getAmount()
                 .multiply(settings.getDepositFeePercent())
-                .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+                .divide(
+                        BigDecimal.valueOf(100),
+                        4,
+                        RoundingMode.HALF_UP
+                );
 
+        // ===== CALCULATE EXPECTED AMOUNT =====
         BigDecimal expectedAmount = request.getAmount().subtract(fee);
 
+        // ===== GENERATE ORDER NUMBER =====
         String orderNo = generateOrderNo();
 
+        // ===== CREATE DEPOSIT ORDER =====
         DepositOrder order = DepositOrder.create(
                 userId,
                 orderNo,
-                request.getCurrency(),
+                currency,
+                network.name(),
 
-                // Network cố định của user
-                externalAddress.getNetwork().name(),
-
-                // Địa chỉ Bank nhận tiền
-                depositAddress.getAddress(),
-
-                // Địa chỉ user gửi tiền
+                // Source: địa chỉ user gửi tiền
                 externalAddress.getAddress(),
+
+                // Destination: địa chỉ Bank nhận tiền
+                depositAddress.getAddress(),
 
                 request.getAmount(),
                 fee,
                 expectedAmount
         );
 
+        // ===== SAVE DEPOSIT ORDER =====
         depositOrderRepository.save(order);
 
-        applicationEventPublisher.publishEvent(new DepositOrderCreatedEvent(
-                order.getId(),
-                userId,
-                order.getOrderNo(),
-                order.getCurrency(),
-                order.getNetwork(),
-                order.getAmount(),
-                order.getFee(),
-                order.getExpectedAmount(),
-                order.getSourceAddress()
-        ));
+        // ===== PUBLISH EVENT =====
+        applicationEventPublisher.publishEvent(
+                new DepositOrderCreatedEvent(
+                        order.getId(),
+                        userId,
+                        order.getOrderNo(),
+                        order.getCurrency(),
+                        order.getNetwork(),
+                        order.getAmount(),
+                        order.getFee(),
+                        order.getExpectedAmount(),
+                        order.getSourceAddress()
+                )
+        );
 
         return CreateDepositOrderResponse.from(order);
     }
@@ -476,6 +517,7 @@ public class DepositServiceImpl implements DepositService {
                 .hasNext(result.hasNext())
                 .build();
     }
+
     private String normalize(String val) {
         return (val == null || val.isBlank()) ? null : val.trim();
     }

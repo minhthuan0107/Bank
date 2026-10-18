@@ -5,6 +5,7 @@ import com.example.bank.enums.wallet.Stablecoin;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 @Repository
 public interface DepositAddressRepository extends JpaRepository<DepositAddress, Long> {
@@ -16,4 +17,8 @@ public interface DepositAddressRepository extends JpaRepository<DepositAddress, 
             String network,
             String status
     );
+
+    boolean existsByNetwork(String network);
+
+    List<DepositAddress> findAllByOrderByIdAsc();
 }

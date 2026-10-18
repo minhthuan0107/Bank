@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -290,5 +291,35 @@ public interface WithdrawOrderRepository extends JpaRepository<WithdrawOrder, Lo
     AdminWithdrawStatisticsProjection getAdminUserStatistics(
             @Param("userId") Long userId
     );
+
+    boolean existsByUserIdAndStatus(
+            Long userId,
+            WithdrawOrderStatus status
+    );
+
+    boolean existsByUserIdAndStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            Long userId,
+            WithdrawOrderStatus status,
+            Instant startOfDay,
+            Instant nextDay
+    );
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+        UPDATE withdraw_orders
+        SET status = 'EXPIRED',
+            updated_at = UTC_TIMESTAMP(6)
+        WHERE status = 'PENDING_OTP'
+          AND (
+              otp_expires_at IS NULL
+              OR otp_expires_at <= UTC_TIMESTAMP(6)
+          )
+        ORDER BY otp_expires_at ASC, id ASC
+        LIMIT :batchSize
+        """, nativeQuery = true)
+    int expirePendingOtpBatch(
+            @Param("batchSize") int batchSize
+    );
+
 
 }

@@ -5,6 +5,8 @@ import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.CreateWalletExternalAddressRequest;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.entity.wallet.WalletExternalAddress;
+import com.example.bank.enums.wallet.CryptoNetwork;
+import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.repository.wallet.WalletExternalAddressRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.service.wallet.user.WalletExternalAddressService;
@@ -43,23 +45,17 @@ public class WalletExternalAddressServiceImpl
             Long userId,
             CreateWalletExternalAddressRequest request
     ) {
-        /*
-         * Lock Wallet để tránh 2 request đồng thời
-         * cùng tạo external address cho một Wallet.
-         */
-        Wallet wallet = walletRepository
-                .findByUserIdForUpdate(userId)
-                .orElseThrow(() ->
-                        new WalletException(
-                                MessageKeys.WALLET_NOT_FOUND,
-                                HttpStatus.NOT_FOUND
-                        )
-                );
+        // ===== LOCK WALLET =====
+        // Tránh hai request của cùng user cùng tạo external address.
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
 
-        /*
-         * Mỗi Wallet chỉ được cấu hình duy nhất
-         * một external address.
-         */
+        // ===== CHECK ALREADY CONFIGURED =====
+        // Mỗi Wallet chỉ được có duy nhất một external address.
+        // Dù đổi currency hoặc network cũng không được tạo thêm.
         if (walletExternalAddressRepository.existsByWalletId(wallet.getId())) {
             throw new WalletException(
                     MessageKeys.WALLET_EXTERNAL_ADDRESS_ALREADY_EXISTS,
@@ -67,17 +63,32 @@ public class WalletExternalAddressServiceImpl
             );
         }
 
-        /*
-         * Loại bỏ khoảng trắng đầu/cuối.
-         *
-         * Không lowercase vì address có thể cần giữ
-         * nguyên định dạng mà user nhập.
-         */
+        // ===== VALIDATE CURRENCY + NETWORK =====
+        Stablecoin currency = request.getCurrency();
+        CryptoNetwork network = request.getNetwork();
+
+        boolean validNetwork =
+                (currency == Stablecoin.USDT &&
+                        (network == CryptoNetwork.TRC20 || network == CryptoNetwork.BEP20))
+                        ||
+                        (currency == Stablecoin.USDC && network == CryptoNetwork.BASE);
+
+        if (!validNetwork) {
+            throw new WalletException(
+                    MessageKeys.WALLET_EXTERNAL_ADDRESS_INVALID_NETWORK,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // ===== NORMALIZE ADDRESS =====
+        // Chỉ trim, không thay đổi chữ hoa/chữ thường.
         String address = request.getAddress().trim();
 
+        // ===== CREATE EXTERNAL ADDRESS =====
         WalletExternalAddress entity = WalletExternalAddress.builder()
                 .walletId(wallet.getId())
-                .network(request.getNetwork())
+                .currency(currency)
+                .network(network)
                 .address(address)
                 .build();
 

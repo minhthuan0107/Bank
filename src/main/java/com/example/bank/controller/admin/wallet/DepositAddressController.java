@@ -11,10 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("${api.prefix}/admin/deposit-addresses")
@@ -23,6 +22,20 @@ public class DepositAddressController {
 
     private final DepositAddressService service;
     private final LocalizationUtils i18n;
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<DepositAddressResponse>>> getDepositAddresses() {
+        List<DepositAddressResponse> response = service.getDepositAddresses();
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        null,
+                        response
+                )
+        );
+    }
 
     @PostMapping("/created")
     @PreAuthorize("hasRole('ADMIN')")
@@ -37,6 +50,22 @@ public class DepositAddressController {
                         HttpStatus.OK.value(),
                         i18n.getLocalizedMessage(MessageKeys.DEPOSIT_ADDRESS_CREATED),
                         response
+                )
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteDepositAddress(
+            @PathVariable Long id
+    ) {
+        service.deleteDepositAddress(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        null,
+                        null
                 )
         );
     }
