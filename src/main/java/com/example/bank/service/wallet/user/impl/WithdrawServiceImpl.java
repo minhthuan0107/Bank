@@ -854,11 +854,15 @@ public class WithdrawServiceImpl implements WithdrawService {
                 ? null
                 : CryptoNetwork.valueOf(summary.getNetwork());
 
+        Stablecoin withdrawCurrency = summary.getWithdrawCurrency() == null
+                ? null
+                : Stablecoin.valueOf(summary.getWithdrawCurrency());
+
         return WithdrawSummaryResponse.builder()
                 .walletId(summary.getWalletId())
                 .balance(safe(summary.getBalance()))
                 .minimumWithdrawalAmount(safe(summary.getMinimumWithdrawalAmount()))
-                .currency(summary.getCurrency())
+                .withdrawCurrency(withdrawCurrency)
                 .network(network)
                 .address(summary.getAddress())
                 .build();
