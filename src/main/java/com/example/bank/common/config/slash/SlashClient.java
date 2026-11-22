@@ -1,14 +1,14 @@
 package com.example.bank.common.config.slash;
 
-import com.example.bank.common.config.properties.SlashProperties;
+import com.example.bank.common.config.slash.SlashProperties;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
-import com.example.bank.dto.request.wallet.s3.SlashCreateCardRequest;
-import com.example.bank.dto.request.wallet.s3.SlashUpdateLimitRequest;
-import com.example.bank.dto.response.slash.SlashCardDetailResponse;
-import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
-import com.example.bank.dto.response.wallet.user.SlashCardSensitiveDetailResponse;
-import com.example.bank.dto.response.wallet.user.SlashTransactionResponse;
+import com.example.bank.dto.request.wallet.slash.SlashCreateCardRequest;
+import com.example.bank.dto.request.wallet.slash.SlashUpdateLimitRequest;
+import com.example.bank.dto.response.wallet.slash.SlashCardDetailResponse;
+import com.example.bank.dto.response.wallet.slash.SlashCreateCardResponse;
+import com.example.bank.dto.response.wallet.slash.SlashCardSensitiveDetailResponse;
+import com.example.bank.dto.response.wallet.slash.SlashTransactionResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

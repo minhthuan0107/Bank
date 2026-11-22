@@ -185,20 +185,18 @@ Giả định cần kiểm tra trên Sandbox: bộ lọc `card_alias` của `/v2
 
 ## 7. Cấu trúc code
 
-Luồng gọi:
+Mọi code Infini nằm trong thư mục con `infini` của từng lớp (xem `SLASH_TO_INFINI_MIGRATION.md`, mục 10). Luồng gọi tạo thẻ:
 
 ```text
-WalletController
-    → CardService
-    → CardServiceImpl
-    → CardCreationService
-    → CardCreationServiceImpl
+InfiniCardCreationController   (controller/user/wallet/infini, đường dẫn vẫn là /wallet/...)
+    → CardCreationService      (service/wallet/infini)
+    → CardCreationServiceImpl  (service/wallet/infini/impl)
+    → CardCreationTransactionServiceImpl  (giao dịch tiền, REQUIRES_NEW)
 ```
 
 - Controller nhận request, lấy user đăng nhập và bọc kết quả bằng `ApiResponse`.
-- Interface service nằm trong `service/wallet/user`; implementation nằm trong `service/wallet/user/impl`.
 - Các transaction liên quan đến tiền nằm trong `CardCreationTransactionService` và `CardCreationTransactionServiceImpl`. Bean riêng giúp `REQUIRES_NEW` có hiệu lực.
-- `CardCreationScheduler` gọi interface service để đối soát định kỳ.
+- `CardCreationScheduler` (`scheduler/infini`) gọi interface service để đối soát định kỳ.
 - DTO response dùng `@Getter`, `@Builder` và `@JsonProperty` theo cấu trúc response ví hiện có.
 - Validation và thông báo nghiệp vụ sử dụng `MessageKeys` cùng các file i18n.
 

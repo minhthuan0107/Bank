@@ -42,7 +42,7 @@ spring:
   task:
     scheduling:
       pool:
-        size: 3
+        size: 4
 
   jackson:
     generator:
@@ -109,6 +109,8 @@ infini:
   applicant-email: ${INFINI_APPLICANT_EMAIL:}
   product-id: ${INFINI_PRODUCT_ID:2}
   creation-poll-delay-ms: ${INFINI_CREATION_POLL_DELAY_MS:10000}
+  funding-poll-delay-ms: ${INFINI_FUNDING_POLL_DELAY_MS:30000}
+  webhook-secret: ${INFINI_WEBHOOK_SECRET:}
 
 ses:
   from:

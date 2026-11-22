@@ -97,6 +97,11 @@ public class SecurityConfig {
                                 apiPrefix + "/webhook/slash"
                         ).permitAll()
 
+                        // Infini webhook: authenticated by its HMAC signature, not by JWT
+                        .requestMatchers(HttpMethod.POST,
+                                apiPrefix + "/webhook/infini"
+                        ).permitAll()
+
                         // Public static / docs
                         .requestMatchers(
                                 apiPrefix + "/public/**",

@@ -2,13 +2,14 @@ package com.example.bank.service.wallet.user.impl;
 
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
+import com.example.bank.dto.response.wallet.user.BalanceResponse;
 import com.example.bank.dto.response.wallet.user.DashboardResponse;
 import com.example.bank.entity.user.User;
 import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.repository.projection.WalletSummaryProjection;
 import com.example.bank.repository.user.UserRepository;
-import com.example.bank.repository.wallet.CardRepository;
-import com.example.bank.repository.wallet.InfiniCardRepository;
+import com.example.bank.repository.wallet.slash.CardRepository;
+import com.example.bank.repository.wallet.infini.InfiniCardRepository;
 import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.repository.wallet.DepositOrderRepository;
 import com.example.bank.repository.wallet.WalletExternalAddressRepository;
@@ -68,5 +69,33 @@ public class WalletServiceImpl implements WalletService {
                 userId,
                 DepositOrderStatus.SUCCESS
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BalanceResponse getUserBalance(Long userId) {
+        // ===== WALLET =====
+        BigDecimal walletBalance = walletRepository
+                .findAvailableBalanceByUserId(userId)
+                .orElseThrow(() -> new WalletException(
+                        MessageKeys.WALLET_NOT_FOUND,
+                        HttpStatus.NOT_FOUND
+                ));
+
+        // ===== CARD BALANCE (sum remaining) =====
+        BigDecimal cardBalance = cardRepository.sumRemainingAmountByUserId(userId);
+        if (cardBalance == null) {
+            cardBalance = BigDecimal.ZERO;
+        }
+
+        BigDecimal infiniBalance = infiniCardRepository.sumRemainingAmountByUserId(userId);
+        if (infiniBalance != null) {
+            cardBalance = cardBalance.add(infiniBalance);
+        }
+
+        return BalanceResponse.builder()
+                .walletBalance(walletBalance)
+                .cardBalance(cardBalance)
+                .build();
     }
 }

@@ -1,6 +1,6 @@
 package com.example.bank.service.wallet.admin.impl;
 
-import com.example.bank.service.wallet.user.creation.CardProviderGuard;
+import com.example.bank.service.wallet.slash.CardProviderGuard;
 
 import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.config.slash.SlashClient;
@@ -8,15 +8,15 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.response.wallet.admin.AdminCardListResponse;
 import com.example.bank.dto.response.wallet.admin.AdminCardPageResponse;
-import com.example.bank.entity.wallet.Card;
+import com.example.bank.entity.wallet.slash.Card;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.enums.wallet.CardBrand;
 import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.projection.UserNameProjection;
 import com.example.bank.repository.user.UserRepository;
-import com.example.bank.repository.wallet.CardFundingTransactionRepository;
-import com.example.bank.repository.wallet.CardRepository;
+import com.example.bank.repository.wallet.slash.CardFundingTransactionRepository;
+import com.example.bank.repository.wallet.slash.CardRepository;
 import com.example.bank.repository.wallet.WalletRepository;
 import com.example.bank.service.wallet.admin.CardAdminService;
 import lombok.RequiredArgsConstructor;

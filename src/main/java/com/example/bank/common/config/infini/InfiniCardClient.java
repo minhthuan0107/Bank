@@ -2,7 +2,8 @@ package com.example.bank.common.config.infini;
 
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
-import com.example.bank.entity.wallet.CardCreationOrder;
+import com.example.bank.entity.wallet.infini.CardCreationOrder;
+import com.example.bank.entity.wallet.infini.InfiniFundingOrder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +81,31 @@ public class InfiniCardClient {
             return send("POST", "/v2/cards/apply", body, APPLY_TIMEOUT);
         } catch (BusinessError e) {
             // Documented: HTTP 200 with a non-zero code is a business error, not a created card.
+            throw new DefiniteRejection("PROVIDER_ERROR_" + e.getCode());
+        }
+    }
+
+    /** POST /v2/cards/top-up: moves funds from the business account to the card. */
+    public JsonNode topUp(InfiniFundingOrder order) throws Exception {
+        return fund("/v2/cards/top-up", order);
+    }
+
+    /** POST /v2/cards/redeem: moves funds from the card back to the business account. */
+    public JsonNode redeem(InfiniFundingOrder order) throws Exception {
+        return fund("/v2/cards/redeem", order);
+    }
+
+    private JsonNode fund(String target, InfiniFundingOrder order) throws Exception {
+        byte[] body = mapper.writeValueAsBytes(Map.of(
+                "id", order.getProviderCardId(),
+                "amount", order.getAmount().setScale(2, java.math.RoundingMode.UNNECESSARY).toPlainString(),
+                "token_type", order.getTokenType(),
+                // Lets an operator match the provider record to this order.
+                "note", order.getRequestId()));
+        // No retry: the documented funding requests have no provider idempotency key.
+        try {
+            return send("POST", target, body, APPLY_TIMEOUT);
+        } catch (BusinessError e) {
             throw new DefiniteRejection("PROVIDER_ERROR_" + e.getCode());
         }
     }

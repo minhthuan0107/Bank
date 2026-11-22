@@ -9,7 +9,7 @@ import com.example.bank.dto.response.wallet.user.CardTransactionPageResponse;
 import com.example.bank.enums.wallet.CardTransactionStatus;
 import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.enums.wallet.CardTxnType;
-import com.example.bank.service.wallet.user.CardFundingService;
+import com.example.bank.service.wallet.slash.CardFundingService;
 import com.example.bank.service.wallet.user.CardTransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

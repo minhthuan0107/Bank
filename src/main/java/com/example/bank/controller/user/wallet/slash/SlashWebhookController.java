@@ -1,0 +1,24 @@
+package com.example.bank.controller.user.wallet.slash;
+
+import com.example.bank.service.wallet.slash.SlashWebhookService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@Slf4j
+public class SlashWebhookController {
+
+    private final SlashWebhookService slashWebhookService;
+
+    @PostMapping("/slash")
+    public ResponseEntity<Void> handleWebhook(
+            @RequestBody String payload
+    ) {
+        slashWebhookService.handle(payload);
+
+        return ResponseEntity.ok().build();
+    }
+}
