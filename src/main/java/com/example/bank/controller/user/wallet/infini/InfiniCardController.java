@@ -8,6 +8,10 @@ import com.example.bank.dto.request.wallet.infini.InfiniFundingRequest;
 import com.example.bank.dto.response.wallet.infini.InfiniCardPageResponse;
 import com.example.bank.dto.response.wallet.infini.InfiniFundingResponse;
 import com.example.bank.service.wallet.infini.InfiniFundingService;
+import com.example.bank.service.wallet.infini.InfiniCardSensitiveDetailService;
+import com.example.bank.service.wallet.infini.InfiniCardLockService;
+import com.example.bank.dto.response.wallet.user.CardSensitiveDetailResponse;
+import org.springframework.http.CacheControl;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import com.example.bank.dto.response.wallet.infini.InfiniCardResponse;
@@ -26,6 +30,8 @@ public class InfiniCardController {
 
     private final InfiniCardService infiniCardService;
     private final InfiniFundingService infiniFundingService;
+    private final InfiniCardSensitiveDetailService sensitiveDetailService;
+    private final InfiniCardLockService lockService;
     private final LocalizationUtils i18n;
 
     @GetMapping
@@ -60,6 +66,48 @@ public class InfiniCardController {
                         response
                 )
         );
+    }
+
+    // Full PAN/CVV: must never be cached by browsers or proxies.
+    @GetMapping("/{cardId}/sensitive-details")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<CardSensitiveDetailResponse>> getSensitiveDetail(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            @PathVariable Long cardId
+    ) {
+        CardSensitiveDetailResponse response =
+                sensitiveDetailService.getSensitiveDetail(currentUser.getId(), cardId);
+
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header("Pragma", "no-cache")
+                .body(ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.INFINI_REVEAL_SUCCESS),
+                        response
+                ));
+    }
+
+    @PostMapping("/{cardId}/lock")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Void>> lockCard(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            @PathVariable Long cardId
+    ) {
+        lockService.lockCard(currentUser.getId(), cardId);
+        return ResponseEntity.ok(ApiResponse.success(
+                HttpStatus.OK.value(), i18n.getLocalizedMessage(MessageKeys.CARD_LOCK_SUCCESS), null));
+    }
+
+    @PostMapping("/{cardId}/unlock")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Void>> unlockCard(
+            @AuthenticationPrincipal UserDetailsImpl currentUser,
+            @PathVariable Long cardId
+    ) {
+        lockService.unlockCard(currentUser.getId(), cardId);
+        return ResponseEntity.ok(ApiResponse.success(
+                HttpStatus.OK.value(), i18n.getLocalizedMessage(MessageKeys.CARD_UNLOCK_SUCCESS), null));
     }
 
     @PostMapping("/{cardId}/topup")

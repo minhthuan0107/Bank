@@ -1215,6 +1215,285 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Card details",
+      "item": [
+        {
+          "name": "R1 Reveal card details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}/sensitive-details",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}",
+                "sensitive-details"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Full card number, CVV and expiry from Infini. Limited to 10 per hour per user. Do not save this response or share screenshots of it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('not cacheable', () => pm.expect(pm.response.headers.get('Cache-Control')).to.include('no-store'));",
+                  "const d = pm.response.json().data;",
+                  "// Checks the format only; never prints the values.",
+                  "pm.test('pan is 12-19 digits', () => pm.expect(/^\\d{12,19}$/.test(d.pan)).to.be.true);",
+                  "pm.test('cvv is 3-4 digits', () => pm.expect(/^\\d{3,4}$/.test(d.cvv)).to.be.true);",
+                  "pm.test('expiry month 1-12', () => pm.expect(d.expiry_month).to.be.within(1, 12));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Card lock",
+      "item": [
+        {
+          "name": "K1 Lock card",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}/lock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}",
+                "lock"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Freezes the card at Infini. The card balance moves from allocated to frozen in the wallet."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K2 Unlock card",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}/unlock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}",
+                "unlock"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Unfreezes the card at Infini, then moves the balance back to allocated."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin Infini cards",
+      "description": "Set admin_access_token in the environment (admin sign-in) before running.",
+      "item": [
+        {
+          "name": "A1 List Infini cards (admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/infini-cards?page=0&status=ACTIVE&username=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "infini-cards"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "disabled": true
+                },
+                {
+                  "key": "username",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Filters: cardNumber (last 4), cardName, username, status, fromTime, toTime, page."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A2 Lock card (admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/infini-cards/{{card_id}}/lock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "infini-cards",
+                "{{card_id}}",
+                "lock"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Locks any user's Infini card."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A3 Unlock card (admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/infini-cards/{{card_id}}/unlock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "infini-cards",
+                "{{card_id}}",
+                "unlock"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Unlocks any user's Infini card."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
