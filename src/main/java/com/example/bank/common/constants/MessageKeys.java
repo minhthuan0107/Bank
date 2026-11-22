@@ -426,6 +426,22 @@ public class MessageKeys {
     public static final String CARD_PROVIDER_OPERATION_NOT_MIGRATED = "card.provider.operation_not_migrated";
     public static final String CARD_CREATION_CONFIG_SUCCESS = "card.creation.config.success";
     public static final String CARD_CREATION_STATUS_SUCCESS = "card.creation.status.success";
+
+    // Infini card funding (top-up / withdraw)
+    public static final String INFINI_FUNDING_INVALID_AMOUNT = "infini.funding.invalid_amount";
+    public static final String INFINI_FUNDING_REQUEST_CONFLICT = "infini.funding.request_conflict";
+    public static final String INFINI_FUNDING_ALREADY_PENDING = "infini.funding.already_pending";
+    public static final String INFINI_FUNDING_CARD_NOT_ACTIVE = "infini.funding.card_not_active";
+    public static final String INFINI_FUNDING_WALLET_UNAVAILABLE = "infini.funding.wallet_unavailable";
+    public static final String INFINI_FUNDING_PROVIDER_UNAVAILABLE = "infini.funding.provider_unavailable";
+    public static final String INFINI_FUNDING_NOT_FOUND = "infini.funding.not_found";
+    public static final String INFINI_FUNDING_PENDING = "infini.funding.pending";
+    public static final String INFINI_FUNDING_TOPUP_SUCCESS = "infini.funding.topup_success";
+    public static final String INFINI_FUNDING_WITHDRAW_SUCCESS = "infini.funding.withdraw_success";
+    public static final String INFINI_FUNDING_FAILED = "infini.funding.failed";
+    public static final String INFINI_FUNDING_STATUS_SUCCESS = "infini.funding.status_success";
+    public static final String INFINI_WEBHOOK_NOT_CONFIGURED = "infini.webhook.not_configured";
+    public static final String INFINI_WEBHOOK_INVALID_SIGNATURE = "infini.webhook.invalid_signature";
     public static final String VALIDATION_CARD_REQUEST_ID_REQUIRED = "validation.card.request_id.required";
     public static final String VALIDATION_CARD_PRODUCT_REQUIRED = "validation.card.product.required";
     public static final String VALIDATION_CARD_NAME_MAX = "validation.card.name.max";

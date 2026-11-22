@@ -1,7 +1,7 @@
 package com.example.bank.service.wallet.admin.impl;
 
 import com.example.bank.enums.wallet.CardStatus;
-import com.example.bank.repository.wallet.CardRepository;
+import com.example.bank.repository.wallet.slash.CardRepository;
 import com.example.bank.service.wallet.admin.AdminUserCardSingleStatusService;
 import com.example.bank.service.wallet.admin.AdminUserCardStatusSyncService;
 import lombok.RequiredArgsConstructor;

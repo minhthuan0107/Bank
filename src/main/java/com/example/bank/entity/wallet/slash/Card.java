@@ -1,0 +1,100 @@
+package com.example.bank.entity.wallet.slash;
+
+import com.example.bank.common.model.BaseEntity;
+import com.example.bank.enums.wallet.CardStatus;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = "cards")
+@SQLRestriction("provider = 'SLASH'")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Card extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /**
+     * Owner
+     */
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    /**
+     * ID từ Slash (mapping webhook)
+     */
+    @Column(name = "slash_card_id", unique = true)
+    private String slashCardId;
+
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    private String provider = "SLASH";
+    /**
+     * Tên hiển thị
+     */
+    private String name;
+
+    /**
+     * virtual / physical
+     */
+    @Column(nullable = false)
+    private String type;
+
+    // ===== MONEY =====
+    // Hạn mức của thẻ trên Slash
+    @Column(name = "card_limit", nullable = false, precision = 19, scale = 4)
+    private BigDecimal cardLimit;
+
+    /**
+     * Số tiền đã tiêu
+     */
+    @Column(name = "spent_amount", nullable = false, precision = 19, scale = 4)
+    private BigDecimal spentAmount;
+
+    /**
+     * Số tiền còn lại
+     */
+    @Column(name = "remaining_amount", nullable = false, precision = 19, scale = 4)
+    private BigDecimal remainingAmount;
+
+    @Column(name = "locked_amount", precision = 19, scale = 4)
+    private BigDecimal lockedAmount;
+
+    @Column(length = 10)
+    private String currency;
+
+    @Column(name = "note", length = 255)
+    private String note;
+
+    // ===== CARD INFO (SAFE) =====
+    /**
+     * BIN (6 số đầu)
+     */
+    @Column(length = 10)
+    private String bin;
+
+    /**
+     * 4 số cuối
+     */
+    @Column(length = 10)
+    private String last4;
+
+    @Column(name = "exp_month")
+    private Integer expMonth;
+
+    @Column(name = "exp_year")
+    private Integer expYear;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CardStatus status;
+
+}

@@ -18,4 +18,6 @@ public class InfiniProperties {
     // No default: set INFINI_APPLICANT_EMAIL (an Infini organization member email).
     private String applicantEmail;
     private Integer productId = 2;
+    // HMAC key for webhook signatures (Infini Developer > Webhook Settings). Empty: webhooks are rejected.
+    private String webhookSecret;
 }

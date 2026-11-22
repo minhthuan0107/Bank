@@ -910,6 +910,311 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Card funding",
+      "item": [
+        {
+          "name": "F1 Top up card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}/topup",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}",
+                "topup"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{funding_request_id}}\",\n  \"amount\": {{funding_amount}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Moves funding_amount (>= 10 USD) from the wallet to the card. No fee. Needs card_id of an ACTIVE Infini card."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// A new request ID per operation; reuse it only to retry the same operation.",
+                  "pm.environment.set('funding_request_id', pm.variables.replaceIn('{{$guid}}'));",
+                  "pm.environment.set('funding_poll_count', '0');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 or 202', () => pm.expect([200, 202]).to.include(pm.response.code));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('status is a known value', () => pm.expect(['PENDING','REVIEW_REQUIRED','SUCCEEDED','FAILED']).to.include(d.status));",
+                  "pm.test('202 only while unresolved', () => pm.expect(pm.response.code === 202).to.eql(['PENDING','REVIEW_REQUIRED'].includes(d.status)));",
+                  "pm.test('type TOP_UP', () => pm.expect(d.type).to.eql('TOP_UP'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "F2 Retry same top-up (idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}/topup",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}",
+                "topup"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{funding_request_id}}\",\n  \"amount\": {{funding_amount}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Same requestId: returns the stored result, never sends a second top-up."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('same request, not a second top-up', () => pm.expect(pm.response.json().data.request_id).to.eql(pm.environment.get('funding_request_id')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "F3 Withdraw from card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}/withdraw",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}",
+                "withdraw"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{funding_request_id}}\",\n  \"amount\": {{funding_amount}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Moves funding_amount from the card back to the wallet. The backend checks the real card balance at Infini first."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// A new request ID per operation; reuse it only to retry the same operation.",
+                  "pm.environment.set('funding_request_id', pm.variables.replaceIn('{{$guid}}'));",
+                  "pm.environment.set('funding_poll_count', '0');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 or 202', () => pm.expect([200, 202]).to.include(pm.response.code));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('status is a known value', () => pm.expect(['PENDING','REVIEW_REQUIRED','SUCCEEDED','FAILED']).to.include(d.status));",
+                  "pm.test('202 only while unresolved', () => pm.expect(pm.response.code === 202).to.eql(['PENDING','REVIEW_REQUIRED'].includes(d.status)));",
+                  "pm.test('type REDEEM', () => pm.expect(d.type).to.eql('REDEEM'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "F4 Funding status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/funding/{{funding_request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "funding",
+                "{{funding_request_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Only needed when F1/F3 returned 202."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const n = Number(pm.environment.get('funding_poll_count') || '0');",
+                  "if (n > 0) { const end = Date.now() + 5000; while (Date.now() < end) {} }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "const n = Number(pm.environment.get('funding_poll_count') || '0') + 1;",
+                  "pm.environment.set('funding_poll_count', String(n));",
+                  "if (['PENDING','REVIEW_REQUIRED'].includes(d.status) && n < 20) { pm.execution.setNextRequest('F4 Funding status'); }",
+                  "else { pm.test('final status', () => pm.expect(['SUCCEEDED','FAILED']).to.include(d.status)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "F5 Top up below minimum (9.99)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}/topup",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}",
+                "topup"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{$guid}}\",\n  \"amount\": 9.99\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

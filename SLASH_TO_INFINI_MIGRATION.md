@@ -175,3 +175,33 @@ Nguồn: [Fund API](https://developer.infini.money/docs/en/fund-api).
 8. Chạy Sandbox trước khi lập kế hoạch chuyển production.
 
 Các tình huống cần kiểm tra: thiếu nguồn tiền; phát hành thất bại; timeout sau khi phía Infini đã xử lý; request đồng thời; webhook trùng/sai chữ ký/sai thứ tự; authorization sang settlement; quyết toán khác số tiền giữ; refund/reversal; nạp/rút vừa có response vừa có webhook; khóa/mở khóa và bảo toàn tổng tài sản.
+
+## 10. Cấu trúc thư mục Infini / Slash
+
+Code của mỗi nhà cung cấp nằm trong thư mục con `infini` hoặc `slash` **bên trong `wallet`** ở từng lớp. Đường dẫn API không đổi.
+
+| Lớp | Infini | Slash |
+| --- | --- | --- |
+| Cấu hình, client | `common/config/infini/` | `common/config/slash/` |
+| Controller | `controller/user/wallet/infini/` | `controller/user/wallet/slash/` |
+| DTO | `dto/request\|response/wallet/infini/` | `dto/request\|response/wallet/slash/` |
+| Entity | `entity/wallet/infini/` | `entity/wallet/slash/` |
+| Repository | `repository/wallet/infini/` | `repository/wallet/slash/` |
+| Service | `service/wallet/infini/` (+ `impl/`) | `service/wallet/slash/` (+ `impl/`) |
+| Scheduler, event, listener | `scheduler/infini/` | `event/slash/`, `listener/slash/` |
+| Test | `src/test/.../service/wallet/infini/` | (không có) |
+
+Phần dùng chung vẫn ở chỗ cũ: `WalletController` (số dư, dashboard ví), `WalletServiceImpl`, giao dịch thẻ (`CardTransaction*`), cashback, dashboard và các service admin.
+
+### Khi xóa Slash
+
+1. Xóa toàn bộ các thư mục `slash` ở bảng trên.
+2. Sửa các file dùng chung còn phụ thuộc Slash (biên dịch sẽ báo lỗi đúng các chỗ này):
+   - `controller/user/wallet/CardTransactionController.java`: lịch sử nạp/rút thẻ Slash (`/card-transactions/search`).
+   - `service/wallet/admin/impl/CardAdminServiceImpl.java`, `AdminUserCardSingleStatusServiceImpl.java`, `AdminUserCardStatusSyncServiceImpl.java`: quản lý thẻ phía admin, cần viết lại cho Infini.
+   - `service/wallet/user/impl/WalletServiceImpl.java`: bỏ phần cộng số dư và đếm thẻ Slash.
+   - `service/wallet/infini/impl/CardCreationTransactionServiceImpl.java`: bỏ thẻ Slash khỏi hạn mức mở thẻ.
+   - Giao dịch thẻ, cashback, dashboard đang đọc dữ liệu Slash (`CardTransaction`, cột `slash_transaction_id`): chuyển sang giao dịch Infini.
+3. Bỏ `slash.*` trong `application.yml`, route `/webhook/slash` trong `SecurityConfig`, và các message key `SLASH_*`.
+4. Bảng `cards`, `card_bins`, `card_holders`, `card_funding_transactions`, `slash_webhook_events` chỉ xóa bằng migration mới sau khi đã sao lưu và không còn cần dữ liệu lịch sử.
+

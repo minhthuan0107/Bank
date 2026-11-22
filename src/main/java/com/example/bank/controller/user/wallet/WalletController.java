@@ -5,19 +5,9 @@ import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
 import com.example.bank.common.utils.LocalizationUtils;
-import com.example.bank.dto.request.wallet.user.CreateCardRequest;
-import com.example.bank.dto.request.wallet.user.TopupCardRequest;
-import com.example.bank.dto.request.wallet.user.WithDrawCardRequest;
 import com.example.bank.dto.response.wallet.user.BalanceResponse;
-import com.example.bank.dto.response.wallet.user.CardCreationConfigResponse;
-import com.example.bank.dto.response.wallet.user.CardCreationResponse;
-import com.example.bank.dto.response.wallet.user.CardPageResponse;
 import com.example.bank.dto.response.wallet.user.DashboardResponse;
-import com.example.bank.service.wallet.user.CardFundingService;
-import com.example.bank.service.wallet.user.CardService;
 import com.example.bank.service.wallet.user.WalletService;
-import jakarta.validation.Valid;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,148 +15,17 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-
+/**
+ * Wallet endpoints shared by all card providers.
+ * Card creation lives in InfiniCardCreationController; legacy Slash card endpoints in SlashWalletCardController.
+ */
 @RestController
 @RequestMapping("${api.prefix}/wallet")
 @RequiredArgsConstructor
 public class WalletController {
 
     private final LocalizationUtils i18n;
-    private final CardService cardService;
-    private final CardFundingService cardFundingService;
     private final WalletService walletService;
-
-
-    @PostMapping("/create-card")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<CardCreationResponse>> createCard(
-            @Valid @RequestBody CreateCardRequest request,
-            @AuthenticationPrincipal UserDetailsImpl currentUser
-    ) {
-
-        CardCreationResponse response =
-                cardService.createCard(request, currentUser.getId());
-
-        HttpStatus status = ("PENDING".equals(response.getStatus()) ||
-                "REVIEW_REQUIRED".equals(response.getStatus()))
-                ? HttpStatus.ACCEPTED : HttpStatus.OK;
-
-        String messageKey = "SUCCEEDED".equals(response.getStatus())
-                ? MessageKeys.CARD_CREATED
-                : ("FAILED".equals(response.getStatus())
-                    ? MessageKeys.CARD_CREATION_FAILED
-                    : MessageKeys.CARD_CREATION_PENDING);
-
-        return ResponseEntity.status(status).body(
-                ApiResponse.success(
-                        status.value(),
-                        i18n.getLocalizedMessage(messageKey),
-                        response
-                )
-        );
-    }
-
-    @GetMapping("/card-creation-config")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<CardCreationConfigResponse>> getCreationConfig(
-            @AuthenticationPrincipal UserDetailsImpl currentUser
-    ) {
-        CardCreationConfigResponse response =
-                cardService.getCreationConfig(currentUser.getId());
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        HttpStatus.OK.value(),
-                        i18n.getLocalizedMessage(MessageKeys.CARD_CREATION_CONFIG_SUCCESS),
-                        response
-                )
-        );
-    }
-
-    @GetMapping("/card-creation/{requestId}")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<CardCreationResponse>> getCreationStatus(
-            @PathVariable UUID requestId,
-            @AuthenticationPrincipal UserDetailsImpl currentUser
-    ) {
-        CardCreationResponse response =
-                cardService.getCreationStatus(requestId, currentUser.getId());
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        HttpStatus.OK.value(),
-                        i18n.getLocalizedMessage(MessageKeys.CARD_CREATION_STATUS_SUCCESS),
-                        response
-                )
-        );
-    }
-
-    @PostMapping("/cards/{cardId}/topup")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Void>> topupCard(
-            @PathVariable Long cardId,
-            @Valid @RequestBody TopupCardRequest request,
-            @AuthenticationPrincipal UserDetailsImpl currentUser
-    ) {
-
-        cardFundingService.topupCard(
-                currentUser.getId(),
-                cardId,
-                request.getAmount(),
-                request.getReferenceId()
-        );
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        HttpStatus.OK.value(),
-                        i18n.getLocalizedMessage(MessageKeys.CARD_TOPUP_SUCCESS),
-                        null
-                )
-        );
-    }
-
-    @PostMapping("/cards/{cardId}/withdraw")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Void>> withDrawCard(
-            @PathVariable Long cardId,
-            @Valid @RequestBody WithDrawCardRequest request,
-            @AuthenticationPrincipal UserDetailsImpl currentUser
-    ) {
-        cardFundingService.withdrawCard(
-                currentUser.getId(),
-                cardId,
-                request.getAmount(),
-                request.getReferenceId()
-        );
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        HttpStatus.OK.value(),
-                        i18n.getLocalizedMessage(MessageKeys.CARD_WITHDRAW_SUCCESS),
-                        null
-                )
-        );
-    }
-
-    @GetMapping("/cards")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<CardPageResponse>> getCardDashboard(
-            @AuthenticationPrincipal UserDetailsImpl currentUser,
-            @RequestParam(defaultValue = "0") int page
-    ) {
-        CardPageResponse response =
-                cardService.getDashboard(
-                        currentUser.getId(),
-                        page
-                );
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        HttpStatus.OK.value(),
-                        i18n.getLocalizedMessage(MessageKeys.CARD_LIST_SUCCESS),
-                        response
-                )
-        );
-    }
 
     @GetMapping("/balance")
     @PreAuthorize("hasRole('USER')")
@@ -175,7 +34,7 @@ public class WalletController {
     ) {
 
         BalanceResponse response =
-                cardService.getUserBalance(currentUser.getId());
+                walletService.getUserBalance(currentUser.getId());
 
         return ResponseEntity.ok(
                 ApiResponse.success(
