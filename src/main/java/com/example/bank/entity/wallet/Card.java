@@ -4,11 +4,13 @@ import com.example.bank.common.model.BaseEntity;
 import com.example.bank.enums.wallet.CardStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "cards")
+@SQLRestriction("provider = 'SLASH'")
 @Getter
 @Setter
 @Builder
@@ -29,9 +31,12 @@ public class Card extends BaseEntity {
     /**
      * ID từ Slash (mapping webhook)
      */
-    @Column(name = "slash_card_id", nullable = false, unique = true)
+    @Column(name = "slash_card_id", unique = true)
     private String slashCardId;
 
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    private String provider = "SLASH";
     /**
      * Tên hiển thị
      */

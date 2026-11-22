@@ -1,5 +1,7 @@
 package com.example.bank.service.wallet.admin.impl;
 
+import com.example.bank.service.wallet.user.creation.CardProviderGuard;
+
 import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.config.slash.SlashClient;
 import com.example.bank.common.constants.MessageKeys;
@@ -217,6 +219,7 @@ public class CardAdminServiceImpl implements CardAdminService {
         }
 
         // 1. Block card bên Slash trước
+        CardProviderGuard.requireSlash(card);
         slashClient.lockCard(card.getSlashCardId());
 
         // 2. Nếu remainingAmount > 0 thì mới chuyển allocated -> frozen
@@ -278,6 +281,7 @@ public class CardAdminServiceImpl implements CardAdminService {
         }
 
         // 1. Unblock card bên Slash trước
+        CardProviderGuard.requireSlash(card);
         slashClient.unblockCard(card.getSlashCardId());
 
         // 2. Nếu lockedAmount > 0 thì mới cập nhật balance/card amount

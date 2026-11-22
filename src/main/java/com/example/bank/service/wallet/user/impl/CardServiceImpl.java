@@ -4,25 +4,27 @@ import com.example.bank.common.config.slash.SlashClient;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.dto.request.wallet.user.CreateCardRequest;
-import com.example.bank.dto.response.wallet.s3.SlashCreateCardResponse;
 import com.example.bank.dto.response.wallet.user.BalanceResponse;
+import com.example.bank.dto.response.wallet.user.CardCreationConfigResponse;
+import com.example.bank.dto.response.wallet.user.CardCreationResponse;
 import com.example.bank.dto.response.wallet.user.CardDashboardResponse;
 import com.example.bank.dto.response.wallet.user.CardListResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
-import com.example.bank.entity.user.User;
 import com.example.bank.entity.wallet.*;
 import com.example.bank.enums.wallet.CardBrand;
 import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.enums.wallet.CardTxnStatus;
 import com.example.bank.enums.wallet.Stablecoin;
-import com.example.bank.event.CardCreatedEvent;
 import com.example.bank.repository.projection.CardDashboardProjection;
-import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.*;
-import com.example.bank.service.redis.LockService;
+import com.example.bank.service.wallet.user.CardCreationService;
 import com.example.bank.service.wallet.user.CardService;
+import com.example.bank.service.wallet.user.creation.CardProviderGuard;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,160 +33,31 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class CardServiceImpl implements CardService {
     private final CardRepository cardRepository;
+    private final InfiniCardRepository infiniCardRepository;
     private final WalletRepository walletRepository;
-    private final CardBinRepository cardBinRepository;
-    private final CardHolderRepository cardHolderRepository;
-    private final LockService lockService;
     private final SlashClient slashClient;
-    private final ApplicationEventPublisher applicationEventPublisher;
     private final CardFundingTransactionRepository transactionRepository;
-    private final UserRepository userRepository;
-    private final WalletSettingsRepository walletSettingsRepository;
     private static final int DEFAULT_PAGE_SIZE = 10;
+    private final CardCreationService cardCreationService;
 
+    @Override
+    public CardCreationResponse createCard(
+            CreateCardRequest request, Long userId) {
+        return cardCreationService.createCard(request, userId);
+    }
 
-    @Transactional
-    public void createCard(CreateCardRequest request, Long userId) {
-        String lockKey = "lock:create_card:" + userId;
-        if (!lockService.tryLock(lockKey)) {
-            throw new WalletException(
-                    MessageKeys.TOO_MANY_REQUESTS,
-                    HttpStatus.TOO_MANY_REQUESTS
-            );
-        }
+    @Override
+    public CardCreationConfigResponse getCreationConfig(Long userId) {
+        return cardCreationService.getCreationConfig(userId);
+    }
 
-        try {
-            // ===== WALLET =====
-            Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.WALLET_NOT_FOUND,
-                            HttpStatus.NOT_FOUND
-                    ));
-
-            BigDecimal amount = request.getAmount();
-            BigDecimal available = wallet.getAvailableBalance();
-
-            // ===== CHECK MIN CARD FUNDING AMOUNT =====
-            // Số tiền tạo/nạp thẻ không được nhỏ hơn cấu hình tối thiểu.
-            WalletSettings settings = walletSettingsRepository
-                    .findByIdAndStatus(1L, "ACTIVE")
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.WALLET_SETTINGS_NOT_FOUND,
-                            HttpStatus.NOT_FOUND
-                    ));
-
-            if (amount.compareTo(settings.getMinCardFundingAmount()) < 0) {
-                throw new WalletException(
-                        MessageKeys.CARD_FUNDING_AMOUNT_BELOW_MIN,
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            if (available.compareTo(amount) < 0) {
-                throw new WalletException(
-                        MessageKeys.INSUFFICIENT_BALANCE,
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.USER_NOT_FOUND,
-                            HttpStatus.NOT_FOUND
-                    ));
-
-            // ===== LIMIT CARD =====
-            long totalCard = cardRepository.countByUserId(userId);
-            if (totalCard >= user.getCardOpenLimit()) {
-                throw new WalletException(
-                        MessageKeys.CARD_LIMIT_EXCEEDED,
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            // ===== BIN =====
-            CardBin bin = cardBinRepository.findByBin(request.getBin())
-                    .orElseThrow(() -> new WalletException(
-                            MessageKeys.INVALID_BIN,
-                            HttpStatus.BAD_REQUEST
-                    ));
-
-            // ===== CALL SLASH (QUAN TRỌNG) =====
-            SlashCreateCardResponse slashCard = slashClient.createCard(
-                    request.getName(),
-                    bin.getCardProductId(),
-                    amount
-            );
-
-            // ===== UPDATE WALLET (sau khi Slash OK) =====
-            wallet.setAvailableBalance(
-                    wallet.getAvailableBalance().subtract(amount)
-            );
-
-            wallet.setAllocatedBalance(
-                    wallet.getAllocatedBalance().add(amount)
-            );
-
-            // ===== SAVE CARD =====
-            Card card = Card.builder()
-                    .userId(userId)
-                    .slashCardId(slashCard.getId())
-                    .name(request.getName())
-                    .type("virtual")
-                    .cardLimit(amount)
-                    .note(request.getNote())
-                    .currency("USD")
-                    .spentAmount(BigDecimal.ZERO)
-                    .remainingAmount(amount)
-                    .status(CardStatus.ACTIVE)
-                    .bin(request.getBin())
-                    .last4(slashCard.getLast4())
-                    .expMonth(
-                            slashCard.getExpiration() != null
-                                    ? slashCard.getExpiration().getMonth()
-                                    : null
-                    )
-                    .expYear(
-                            slashCard.getExpiration() != null
-                                    ? slashCard.getExpiration().getYear()
-                                    : null
-                    )
-                    .build();
-
-            cardRepository.save(card);
-
-            applicationEventPublisher.publishEvent(
-                    new CardCreatedEvent(
-                            card.getId(),
-                            slashCard.getId()
-                    )
-            );
-            // ===== SAVE HOLDER =====
-            var h = request.getHolder();
-
-            CardHolder holder = CardHolder.builder()
-                    .cardId(card.getId())
-                    .firstName(h.getFirstName())
-                    .lastName(h.getLastName())
-                    .addressLine(h.getAddressLine())
-                    .city(h.getCity())
-                    .state(h.getState())
-                    .postalCode(h.getPostalCode())
-                    .country(h.getCountry())
-                    .build();
-
-            cardHolderRepository.save(holder);
-        } finally {
-            lockService.release(lockKey);
-        }
+    @Override
+    public CardCreationResponse getCreationStatus(UUID requestId, Long userId) {
+        return cardCreationService.getCreationStatus(requestId, userId);
     }
 
     public CardPageResponse getDashboard(Long userId, int page) {
@@ -220,7 +93,8 @@ public class CardServiceImpl implements CardService {
                 .build();
     }
     private String maskCard(String bin, String last4) {
-        if (bin == null || last4 == null) return "****";
+        if (last4 == null) return "****";
+        if (bin == null) return "**** **** **** " + last4;
         return bin + "******" + last4;
     }
     private CardBrand detectBrand(String bin) {
@@ -247,6 +121,11 @@ public class CardServiceImpl implements CardService {
         BigDecimal cardBalance = cardRepository.sumRemainingAmountByUserId(userId);
         if (cardBalance == null) {
             cardBalance = BigDecimal.ZERO;
+        }
+
+        BigDecimal infiniBalance = infiniCardRepository.sumRemainingAmountByUserId(userId);
+        if (infiniBalance != null) {
+            cardBalance = cardBalance.add(infiniBalance);
         }
 
         return BalanceResponse.builder()
@@ -300,6 +179,7 @@ public class CardServiceImpl implements CardService {
         }
 
         // 1. Block card bên Slash trước
+        CardProviderGuard.requireSlash(card);
         slashClient.lockCard(card.getSlashCardId());
 
         // 2. Nếu remainingAmount > 0 thì mới chuyển allocated -> frozen
@@ -352,6 +232,8 @@ public class CardServiceImpl implements CardService {
                     HttpStatus.CONFLICT
             );
         }
+
+        CardProviderGuard.requireSlash(card);
 
         slashClient.unblockCard(card.getSlashCardId());
 
@@ -467,4 +349,3 @@ public class CardServiceImpl implements CardService {
 
 
 }
-

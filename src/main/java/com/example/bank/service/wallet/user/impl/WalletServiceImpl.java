@@ -8,6 +8,8 @@ import com.example.bank.enums.wallet.DepositOrderStatus;
 import com.example.bank.repository.projection.WalletSummaryProjection;
 import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.CardRepository;
+import com.example.bank.repository.wallet.InfiniCardRepository;
+import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.repository.wallet.DepositOrderRepository;
 import com.example.bank.repository.wallet.WalletExternalAddressRepository;
 import com.example.bank.repository.wallet.WalletRepository;
@@ -24,6 +26,7 @@ import java.math.BigDecimal;
 public class WalletServiceImpl implements WalletService {
     private final WalletRepository walletRepository;
     private final CardRepository cardRepository;
+    private final InfiniCardRepository infiniCardRepository;
     private final UserRepository userRepository;
     private final DepositOrderRepository depositOrderRepository;
     private final WalletExternalAddressRepository walletExternalAddressRepository;
@@ -33,6 +36,7 @@ public class WalletServiceImpl implements WalletService {
         WalletSummaryProjection wallet = walletRepository.getWalletSummary(userId);
         Long cardCount = cardRepository.getActivatedCardCount(userId);
         if (cardCount == null) cardCount = 0L;
+        cardCount += infiniCardRepository.countByUserIdAndStatus(userId, CardStatus.ACTIVE);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new WalletException(
                         MessageKeys.USER_NOT_FOUND,

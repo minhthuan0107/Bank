@@ -1,0 +1,915 @@
+{
+  "info": {
+    "name": "Bank - Infini card creation",
+    "description": "Pick an environment, then run folder 'Happy path' in order with the Runner. Needs Infini enabled on the backend (sandbox) and a USER with at least 11 USD available in the USD wallet.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Happy path",
+      "item": [
+        {
+          "name": "00 Sign in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/signin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "signin"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Needs a USER account with a USD wallet. Saves access_token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('signed in', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().tokens;",
+                  "pm.test('has tokens', () => pm.expect(t.access_token).to.be.a('string').and.not.empty);",
+                  "pm.environment.set('access_token', t.access_token);",
+                  "pm.environment.set('refresh_token', t.refresh_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 Balance before",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet/balance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "balance"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "pm.environment.set('wallet_balance_before', String(d.wallet_balance));",
+                  "pm.environment.set('card_balance_before', String(d.card_balance));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Creation config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet/card-creation-config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "card-creation-config"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('min 10 and fee 1', () => { pm.expect(Number(d.min_amount)).to.eql(10); pm.expect(Number(d.creation_fee)).to.eql(1); });",
+                  "pm.test('max = available - 1 (never below 0)', () => pm.expect(Number(d.max_amount)).to.eql(Math.max(Number(d.available_balance) - 1, 0)));",
+                  "pm.test('can_create is true (needs Infini enabled, wallet >= 11 USD, no pending order)', () => pm.expect(d.can_create).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 Create card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{request_id}}\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": {{card_amount}},\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Generates a request id once and reuses it for retries."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('request_id')) { pm.environment.set('request_id', pm.variables.replaceIn('{{$guid}}')); }",
+                  "pm.environment.set('poll_count', '0');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 or 202', () => pm.expect([200, 202]).to.include(pm.response.code));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('same request id', () => pm.expect(d.request_id).to.eql(pm.environment.get('request_id')));",
+                  "pm.test('provider is INFINI', () => pm.expect(d.provider).to.eql('INFINI'));",
+                  "pm.test('fee is 1 and total = amount + 1', () => { pm.expect(Number(d.fee)).to.eql(1); pm.expect(Number(d.total_debit)).to.eql(Number(d.amount) + 1); });",
+                  "pm.test('status is a known value', () => pm.expect(['PENDING','REVIEW_REQUIRED','SUCCEEDED','FAILED']).to.include(d.status));",
+                  "pm.test('202 only for PENDING / REVIEW_REQUIRED', () => pm.expect(pm.response.code === 202).to.eql(['PENDING','REVIEW_REQUIRED'].includes(d.status)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Retry same request (idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{request_id}}\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": {{card_amount}},\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Same requestId and same content. The backend must not reserve funds or call Infini again."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('accepted again', () => pm.expect([200, 202]).to.include(pm.response.code));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('same order, not a new hold', () => pm.expect(d.request_id).to.eql(pm.environment.get('request_id')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 Retry with changed amount (conflict)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{request_id}}\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": {{card_amount_changed}},\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Same requestId but a different amount must be rejected."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 conflict', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 Poll creation status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet/card-creation/{{request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "card-creation",
+                "{{request_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Loops until SUCCEEDED or FAILED (max 40 polls). A REVIEW_REQUIRED that never resolves needs manual reconciliation."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const n = Number(pm.environment.get('poll_count') || '0');",
+                  "// wait 5s between polls (the backend polls Infini every 10-15s)",
+                  "if (n > 0) { const end = Date.now() + 5000; while (Date.now() < end) {} }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "const n = Number(pm.environment.get('poll_count') || '0') + 1;",
+                  "pm.environment.set('poll_count', String(n));",
+                  "console.log('status=' + d.status + ' poll=' + n);",
+                  "if (['PENDING','REVIEW_REQUIRED'].includes(d.status) && n < 40) {",
+                  "  pm.execution.setNextRequest('06 Poll creation status');",
+                  "} else {",
+                  "  pm.test('reached a final status (SUCCEEDED or FAILED), not stuck', () => pm.expect(['SUCCEEDED','FAILED']).to.include(d.status));",
+                  "  if (d.card_id) pm.environment.set('card_id', String(d.card_id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 Balance after",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet/balance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "balance"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Run only after the poll reached a final status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "const before = Number(pm.environment.get('wallet_balance_before'));",
+                  "const cardBefore = Number(pm.environment.get('card_balance_before'));",
+                  "const amount = Number(pm.environment.get('card_amount'));",
+                  "const wallet = Number(d.wallet_balance), card = Number(d.card_balance);",
+                  "const created = Math.abs(wallet - (before - amount - 1)) < 0.0001 && Math.abs(card - (cardBefore + amount)) < 0.0001;",
+                  "const failed = Math.abs(wallet - before) < 0.0001 && Math.abs(card - cardBefore) < 0.0001;",
+                  "pm.test('SUCCEEDED: wallet -(amount+1) and card +amount, OR FAILED: nothing changed', () => pm.expect(created || failed).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 List Infini cards",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/infini-cards?page=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('has items array', () => pm.expect(d.items).to.be.an('array'));",
+                  "const id = pm.environment.get('card_id');",
+                  "if (id) pm.test('new card is listed', () => pm.expect(d.items.map(c => String(c.id))).to.include(id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 Infini card detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/infini-cards/{{card_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "infini-cards",
+                "{{card_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 Reset request id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet/card-creation-config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "card-creation-config"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Run before creating another card, so a new requestId is generated."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('request_id'); pm.environment.unset('card_id');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ready for a new card', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Validation and errors",
+      "item": [
+        {
+          "name": "N1 No token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{request_id}}\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": {{card_amount}},\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N2 Amount below minimum (9.99)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{$guid}}\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": 9.99,\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N3 Three decimal places",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{$guid}}\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": 10.123,\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N4 Missing holderName",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{$guid}}\",\n  \"name\": \"x\",\n  \"amount\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N5 Amount above balance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"{{$guid}}\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": 99999999.00,\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Holds no funds and creates no order."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 insufficient balance', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N6 Request id is not a UUID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wallet/create-card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "create-card"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"not-a-uuid\",\n  \"name\": \"{{card_name}}\",\n  \"amount\": {{card_amount}},\n  \"holderName\": \"{{card_holder_name}}\",\n  \"note\": \"postman test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N7 Unknown request id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet/card-creation/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "card-creation",
+                "00000000-0000-4000-8000-000000000000"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

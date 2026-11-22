@@ -411,4 +411,24 @@ public class MessageKeys {
 
 
 
+
+    // Card creation
+    public static final String CARD_CREATION_INVALID_AMOUNT = "card.creation.invalid_amount";
+    public static final String CARD_CREATION_INSUFFICIENT_BALANCE = "card.creation.insufficient_balance";
+    public static final String CARD_CREATION_REQUEST_CONFLICT = "card.creation.request_conflict";
+    public static final String CARD_CREATION_WALLET_UNAVAILABLE = "card.creation.wallet_unavailable";
+    public static final String CARD_CREATION_ALREADY_PENDING = "card.creation.already_pending";
+    public static final String CARD_CREATION_PROVIDER_NOT_CONFIGURED = "card.creation.provider_not_configured";
+    public static final String CARD_CREATION_INVALID_PRODUCT = "card.creation.invalid_product";
+    public static final String CARD_CREATION_NOT_FOUND = "card.creation.not_found";
+    public static final String CARD_CREATION_PENDING = "card.creation.pending";
+    public static final String CARD_CREATION_FAILED = "card.creation.failed";
+    public static final String CARD_PROVIDER_OPERATION_NOT_MIGRATED = "card.provider.operation_not_migrated";
+    public static final String CARD_CREATION_CONFIG_SUCCESS = "card.creation.config.success";
+    public static final String CARD_CREATION_STATUS_SUCCESS = "card.creation.status.success";
+    public static final String VALIDATION_CARD_REQUEST_ID_REQUIRED = "validation.card.request_id.required";
+    public static final String VALIDATION_CARD_PRODUCT_REQUIRED = "validation.card.product.required";
+    public static final String VALIDATION_CARD_NAME_MAX = "validation.card.name.max";
+    public static final String VALIDATION_CARD_HOLDER_NAME_REQUIRED = "validation.card.holder_name.required";
+
 }

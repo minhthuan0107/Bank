@@ -1,5 +1,6 @@
 package com.example.bank.controller.user.wallet;
 
+
 import com.example.bank.common.config.security.UserDetailsImpl;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.response.ApiResponse;
@@ -8,12 +9,15 @@ import com.example.bank.dto.request.wallet.user.CreateCardRequest;
 import com.example.bank.dto.request.wallet.user.TopupCardRequest;
 import com.example.bank.dto.request.wallet.user.WithDrawCardRequest;
 import com.example.bank.dto.response.wallet.user.BalanceResponse;
+import com.example.bank.dto.response.wallet.user.CardCreationConfigResponse;
+import com.example.bank.dto.response.wallet.user.CardCreationResponse;
 import com.example.bank.dto.response.wallet.user.CardPageResponse;
 import com.example.bank.dto.response.wallet.user.DashboardResponse;
 import com.example.bank.service.wallet.user.CardFundingService;
 import com.example.bank.service.wallet.user.CardService;
 import com.example.bank.service.wallet.user.WalletService;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,18 +39,64 @@ public class WalletController {
 
     @PostMapping("/create-card")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Void>> createCard(
+    public ResponseEntity<ApiResponse<CardCreationResponse>> createCard(
             @Valid @RequestBody CreateCardRequest request,
             @AuthenticationPrincipal UserDetailsImpl currentUser
     ) {
 
-        cardService.createCard(request, currentUser.getId());
+        CardCreationResponse response =
+                cardService.createCard(request, currentUser.getId());
+
+        HttpStatus status = ("PENDING".equals(response.getStatus()) ||
+                "REVIEW_REQUIRED".equals(response.getStatus()))
+                ? HttpStatus.ACCEPTED : HttpStatus.OK;
+
+        String messageKey = "SUCCEEDED".equals(response.getStatus())
+                ? MessageKeys.CARD_CREATED
+                : ("FAILED".equals(response.getStatus())
+                    ? MessageKeys.CARD_CREATION_FAILED
+                    : MessageKeys.CARD_CREATION_PENDING);
+
+        return ResponseEntity.status(status).body(
+                ApiResponse.success(
+                        status.value(),
+                        i18n.getLocalizedMessage(messageKey),
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/card-creation-config")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<CardCreationConfigResponse>> getCreationConfig(
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        CardCreationConfigResponse response =
+                cardService.getCreationConfig(currentUser.getId());
 
         return ResponseEntity.ok(
                 ApiResponse.success(
                         HttpStatus.OK.value(),
-                        i18n.getLocalizedMessage(MessageKeys.CARD_CREATED),
-                        null
+                        i18n.getLocalizedMessage(MessageKeys.CARD_CREATION_CONFIG_SUCCESS),
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/card-creation/{requestId}")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<CardCreationResponse>> getCreationStatus(
+            @PathVariable UUID requestId,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        CardCreationResponse response =
+                cardService.getCreationStatus(requestId, currentUser.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        HttpStatus.OK.value(),
+                        i18n.getLocalizedMessage(MessageKeys.CARD_CREATION_STATUS_SUCCESS),
+                        response
                 )
         );
     }
