@@ -17,6 +17,29 @@ public interface InfiniCardRepository extends JpaRepository<InfiniCard, Long> {
 
     long countByUserId(Long userId);
 
+    // Admin search across all users. cardNumber matches the last four digits.
+    @Query("""
+        SELECT c
+        FROM InfiniCard c
+        JOIN User u ON u.id = c.userId
+        WHERE (:cardNumber IS NULL OR c.last4 LIKE CONCAT('%', :cardNumber, '%'))
+          AND (:cardName IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :cardName, '%')))
+          AND (:username IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :username, '%')))
+          AND (:status IS NULL OR c.status = :status)
+          AND (:fromTime IS NULL OR c.createdAt >= :fromTime)
+          AND (:toTime IS NULL OR c.createdAt <= :toTime)
+        """)
+    Page<InfiniCard> searchAdmin(@Param("cardNumber") String cardNumber,
+                                 @Param("cardName") String cardName,
+                                 @Param("username") String username,
+                                 @Param("status") CardStatus status,
+                                 @Param("fromTime") java.time.Instant fromTime,
+                                 @Param("toTime") java.time.Instant toTime,
+                                 Pageable pageable);
+
+    @Query("select c.id from InfiniCard c where c.userId = :userId and c.status = :status")
+    java.util.List<Long> findIdsByUserIdAndStatus(@Param("userId") Long userId, @Param("status") CardStatus status);
+
     long countByUserIdAndStatus(Long userId, CardStatus status);
 
     Page<InfiniCard> findByUserId(Long userId, Pageable pageable);

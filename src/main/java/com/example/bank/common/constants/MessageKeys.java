@@ -442,6 +442,16 @@ public class MessageKeys {
     public static final String INFINI_FUNDING_STATUS_SUCCESS = "infini.funding.status_success";
     public static final String INFINI_WEBHOOK_NOT_CONFIGURED = "infini.webhook.not_configured";
     public static final String INFINI_WEBHOOK_INVALID_SIGNATURE = "infini.webhook.invalid_signature";
+
+    // Infini card details (PAN / CVV)
+    public static final String INFINI_REVEAL_SUCCESS = "infini.reveal.success";
+    public static final String INFINI_REVEAL_CARD_NOT_ACTIVE = "infini.reveal.card_not_active";
+    public static final String INFINI_REVEAL_RATE_LIMITED = "infini.reveal.rate_limited";
+    public static final String INFINI_REVEAL_UNAVAILABLE = "infini.reveal.unavailable";
+
+    // Infini card lock / unlock
+    public static final String INFINI_CARD_LOCK_FAILED = "infini.card.lock_failed";
+    public static final String INFINI_CARD_UNLOCK_FAILED = "infini.card.unlock_failed";
     public static final String VALIDATION_CARD_REQUEST_ID_REQUIRED = "validation.card.request_id.required";
     public static final String VALIDATION_CARD_PRODUCT_REQUIRED = "validation.card.product.required";
     public static final String VALIDATION_CARD_NAME_MAX = "validation.card.name.max";

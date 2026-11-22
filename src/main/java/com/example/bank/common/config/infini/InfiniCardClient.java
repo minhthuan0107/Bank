@@ -85,6 +85,34 @@ public class InfiniCardClient {
         }
     }
 
+    /**
+     * POST /v2/cards/reveal: full card number, CVV and expiry (MMYY).
+     * The result is sensitive: callers must never log or store it.
+     */
+    public JsonNode reveal(String providerCardId) throws Exception {
+        byte[] body = mapper.writeValueAsBytes(Map.of("id", providerCardId));
+        return send("POST", "/v2/cards/reveal", body, STATUS_TIMEOUT);
+    }
+
+    /** POST /v2/cards/freeze. Returns data with "success" and "message". */
+    public JsonNode freeze(String providerCardId) throws Exception {
+        return cardAction("/v2/cards/freeze", providerCardId);
+    }
+
+    /** POST /v2/cards/unfreeze. Returns data with "success" and "message". */
+    public JsonNode unfreeze(String providerCardId) throws Exception {
+        return cardAction("/v2/cards/unfreeze", providerCardId);
+    }
+
+    private JsonNode cardAction(String target, String providerCardId) throws Exception {
+        byte[] body = mapper.writeValueAsBytes(Map.of("id", providerCardId));
+        try {
+            return send("POST", target, body, STATUS_TIMEOUT);
+        } catch (BusinessError e) {
+            throw new DefiniteRejection("PROVIDER_ERROR_" + e.getCode());
+        }
+    }
+
     /** POST /v2/cards/top-up: moves funds from the business account to the card. */
     public JsonNode topUp(InfiniFundingOrder order) throws Exception {
         return fund("/v2/cards/top-up", order);

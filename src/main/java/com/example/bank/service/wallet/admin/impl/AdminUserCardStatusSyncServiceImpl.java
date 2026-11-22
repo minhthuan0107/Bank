@@ -4,6 +4,7 @@ import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.repository.wallet.slash.CardRepository;
 import com.example.bank.service.wallet.admin.AdminUserCardSingleStatusService;
 import com.example.bank.service.wallet.admin.AdminUserCardStatusSyncService;
+import com.example.bank.service.wallet.infini.InfiniCardLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class AdminUserCardStatusSyncServiceImpl implements AdminUserCardStatusSy
 
     private final CardRepository cardRepository;
     private final AdminUserCardSingleStatusService singleStatusService;
+    private final InfiniCardLockService infiniCardLockService;
 
     @Override
     @Transactional(readOnly = true)
@@ -34,6 +36,9 @@ public class AdminUserCardStatusSyncServiceImpl implements AdminUserCardStatusSy
                 log.error("Lock card failed userId={}, cardId={}", userId, cardId, e);
             }
         }
+
+        // Infini cards: errors are logged per card inside the service.
+        infiniCardLockService.lockAllCardsOfUser(userId);
     }
 
     @Override
@@ -51,5 +56,7 @@ public class AdminUserCardStatusSyncServiceImpl implements AdminUserCardStatusSy
                 log.error("Unlock card failed userId={}, cardId={}", userId, cardId, e);
             }
         }
+
+        infiniCardLockService.unlockAllCardsOfUser(userId);
     }
 }

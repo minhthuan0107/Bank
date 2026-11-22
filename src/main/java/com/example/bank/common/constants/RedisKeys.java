@@ -28,6 +28,12 @@ public class RedisKeys {
         return "otp:ip:hour:" + ip;
     }
 
+    // Hourly counter of card detail (PAN/CVV) reveals per user.
+    public static String cardRevealHourly(Long userId) {
+        return "card:reveal:hour:" + userId + ":" +
+                LocalDateTime.now().format(HOUR_FORMAT);
+    }
+
     public static String depositOrderLimit(Long userId) {
         return "wallet:deposit:order:limit:" + userId + ":" +
                 LocalDateTime.now().format(HOUR_FORMAT);
