@@ -1,5 +1,7 @@
 package com.example.bank.service.wallet.admin.impl;
 
+import com.example.bank.service.wallet.user.creation.CardProviderGuard;
+
 import com.example.bank.common.config.slash.SlashClient;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
@@ -67,6 +69,7 @@ public class AdminUserCardSingleStatusServiceImpl implements AdminUserCardSingle
         }
 
         // Khóa trên Slash trước
+        CardProviderGuard.requireSlash(card);
         slashClient.lockCard(card.getSlashCardId());
 
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
@@ -113,6 +116,7 @@ public class AdminUserCardSingleStatusServiceImpl implements AdminUserCardSingle
         }
 
         // Mở trên Slash trước
+        CardProviderGuard.requireSlash(card);
         slashClient.unblockCard(card.getSlashCardId());
 
         // Nếu locked_amount > 0 thì mới move balance frozen -> allocated

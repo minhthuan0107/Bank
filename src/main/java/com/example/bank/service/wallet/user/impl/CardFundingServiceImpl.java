@@ -1,5 +1,7 @@
 package com.example.bank.service.wallet.user.impl;
 
+import com.example.bank.service.wallet.user.creation.CardProviderGuard;
+
 import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.config.slash.SlashClient;
 import com.example.bank.common.constants.MessageKeys;
@@ -100,6 +102,7 @@ public class CardFundingServiceImpl implements CardFundingService {
                     ));
             BigDecimal newLimit = card.getCardLimit().add(amount);
             // ===== CALL SLASH =====
+            CardProviderGuard.requireSlash(card);
             slashClient.setLimit(card.getSlashCardId(), newLimit);
 
             // ===== UPDATE WALLET =====
@@ -205,6 +208,7 @@ public class CardFundingServiceImpl implements CardFundingService {
             // ===== CALCULATE NEW LIMIT =====
             BigDecimal newLimit = card.getCardLimit().subtract(amount);
             // ===== CALL SLASH =====
+            CardProviderGuard.requireSlash(card);
             slashClient.setLimit(card.getSlashCardId(), newLimit);
 
             // ===== UPDATE CARD =====

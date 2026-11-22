@@ -38,6 +38,12 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQL8Dialect
 
+  # Separate threads so a slow Infini call cannot delay the other scheduled jobs.
+  task:
+    scheduling:
+      pool:
+        size: 3
+
   jackson:
     generator:
       write-bigdecimal-as-plain: true
@@ -92,6 +98,17 @@ slash:
     update-limit: /card/{id}
     update-card: /card/{id}
     get-transaction: /transaction/{id}
+
+# Keys match InfiniProperties. Everything has a safe default so the app starts with Infini disabled.
+infini:
+  enabled: ${INFINI_ENABLED:false}
+  base-url: ${INFINI_BASE_URL:https://openapi-sandbox.infini.money}
+  key-id: ${INFINI_KEY_ID:}
+  private-key-path: ${INFINI_PRIVATE_KEY_PATH:}
+  token-type: ${INFINI_TOKEN_TYPE:USDT}
+  applicant-email: ${INFINI_APPLICANT_EMAIL:}
+  product-id: ${INFINI_PRODUCT_ID:2}
+  creation-poll-delay-ms: ${INFINI_CREATION_POLL_DELAY_MS:10000}
 
 ses:
   from:

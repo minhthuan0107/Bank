@@ -1,5 +1,7 @@
 package com.example.bank.service.wallet.user.impl;
 
+import com.example.bank.service.wallet.user.creation.CardProviderGuard;
+
 import com.example.bank.common.config.slash.SlashClient;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
@@ -26,6 +28,8 @@ public class CardSensitiveDetailServiceImpl implements CardSensitiveDetailServic
                         MessageKeys.CARD_NOT_FOUND_OR_FORBIDDEN,
                         HttpStatus.NOT_FOUND
                 ));
+
+        CardProviderGuard.requireSlash(card);
 
         if (card.getSlashCardId() == null || card.getSlashCardId().isBlank()) {
             throw new WalletException(
