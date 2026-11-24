@@ -5,10 +5,12 @@ import com.example.bank.common.config.infini.InfiniProperties;
 import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.entity.wallet.infini.InfiniCard;
+import com.example.bank.enums.wallet.CardLockedBy;
 import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.repository.wallet.infini.InfiniCardRepository;
 import com.example.bank.service.wallet.infini.InfiniCardLockService;
 import com.example.bank.service.wallet.infini.InfiniCardLockTransactionService;
+import com.example.bank.service.wallet.infini.InfiniCardLockTransactionService.UnblockResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,20 +40,22 @@ public class InfiniCardLockServiceImpl implements InfiniCardLockService {
     private final InfiniCardRepository cards;
 
     @Override
-    public void lockCard(Long userId, Long cardId) {
+    public void lockCard(Long userId, Long cardId, CardLockedBy actor) {
         client.validateConfiguration();
-        InfiniCard card = ledger.block(userId, cardId);
+        var block = ledger.block(userId, cardId, actor);
+        InfiniCard card = block.card();
         if (confirmed(() -> client.freeze(card.getInfiniCardId()), card, FROZEN)) {
-            log.info("Card locked userId={} cardId={}", userId, cardId);
+            log.info("Card locked userId={} cardId={} by={}", userId, cardId, actor);
             return;
         }
-        // Infini still has the card active (or its status is unknown): give the user the card back.
-        ledger.unblock(cardId);
+        // Infini still has the card active (or its status is unknown): give the card back.
+        // A takeover of an existing lock is never undone, so the owner cannot unlock it.
+        if (block.newlyBlocked()) ledger.unblock(cardId, actor);
         throw new WalletException(MessageKeys.INFINI_CARD_LOCK_FAILED, HttpStatus.BAD_GATEWAY);
     }
 
     @Override
-    public void unlockCard(Long userId, Long cardId) {
+    public void unlockCard(Long userId, Long cardId, CardLockedBy actor) {
         client.validateConfiguration();
         InfiniCard card = cards.findByIdAndUserId(cardId, userId)
                 .orElseThrow(() -> new WalletException(MessageKeys.CARD_NOT_FOUND, HttpStatus.NOT_FOUND));
@@ -61,12 +65,24 @@ public class InfiniCardLockServiceImpl implements InfiniCardLockService {
         if (card.getStatus() != CardStatus.BLOCKED) {
             throw new WalletException(MessageKeys.INFINI_FUNDING_CARD_NOT_ACTIVE, HttpStatus.CONFLICT);
         }
+        // Before any provider call: an admin lock must not be lifted at Infini either.
+        if (!actor.mayRelease(card.getLockedBy())) throw lockedByAdmin();
         if (!confirmed(() -> client.unfreeze(card.getInfiniCardId()), card, ACTIVE)) {
             // Still frozen at Infini: keep it blocked here as well.
             throw new WalletException(MessageKeys.INFINI_CARD_UNLOCK_FAILED, HttpStatus.BAD_GATEWAY);
         }
-        ledger.unblock(cardId);
-        log.info("Card unlocked userId={} cardId={}", userId, cardId);
+        if (ledger.unblock(cardId, actor) == UnblockResult.NOT_ALLOWED) {
+            // An admin locked the card while it was being unfrozen: freeze it again.
+            if (!confirmed(() -> client.freeze(card.getInfiniCardId()), card, FROZEN)) {
+                log.error("Card locked by admin could not be frozen again cardId={}", cardId);
+            }
+            throw lockedByAdmin();
+        }
+        log.info("Card unlocked userId={} cardId={} by={}", userId, cardId, actor);
+    }
+
+    private WalletException lockedByAdmin() {
+        return new WalletException(MessageKeys.INFINI_CARD_LOCKED_BY_ADMIN, HttpStatus.FORBIDDEN);
     }
 
     @Override
@@ -74,7 +90,7 @@ public class InfiniCardLockServiceImpl implements InfiniCardLockService {
         if (!properties.isEnabled()) return;
         for (Long cardId : cards.findIdsByUserIdAndStatus(userId, CardStatus.ACTIVE)) {
             try {
-                lockCard(userId, cardId);
+                lockCard(userId, cardId, CardLockedBy.ACCOUNT);
             } catch (Exception e) {
                 log.error("Lock Infini card failed userId={} cardId={} reason={}", userId, cardId,
                         e.getClass().getSimpleName());
@@ -85,9 +101,9 @@ public class InfiniCardLockServiceImpl implements InfiniCardLockService {
     @Override
     public void unlockAllCardsOfUser(Long userId) {
         if (!properties.isEnabled()) return;
-        for (Long cardId : cards.findIdsByUserIdAndStatus(userId, CardStatus.BLOCKED)) {
+        for (Long cardId : cards.findIdsByUserIdAndLockedBy(userId, CardStatus.BLOCKED, CardLockedBy.ACCOUNT)) {
             try {
-                unlockCard(userId, cardId);
+                unlockCard(userId, cardId, CardLockedBy.ACCOUNT);
             } catch (Exception e) {
                 log.error("Unlock Infini card failed userId={} cardId={} reason={}", userId, cardId,
                         e.getClass().getSimpleName());

@@ -1,6 +1,7 @@
 package com.example.bank.dto.response.wallet.infini;
 
 import com.example.bank.entity.wallet.infini.InfiniCard;
+import com.example.bank.enums.wallet.CardLockedBy;
 import com.example.bank.enums.wallet.CardStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
@@ -48,6 +49,10 @@ public class AdminInfiniCardResponse {
     @JsonProperty("status")
     private CardStatus status;
 
+    // USER, ACCOUNT or ADMIN while locked; only USER locks can be released by the owner.
+    @JsonProperty("locked_by")
+    private CardLockedBy lockedBy;
+
     @JsonProperty("remaining_amount")
     private BigDecimal remainingAmount;
 
@@ -70,6 +75,7 @@ public class AdminInfiniCardResponse {
                 .note(card.getNote())
                 .currency(card.getCurrency())
                 .status(card.getStatus())
+                .lockedBy(card.getLockedBy())
                 .remainingAmount(card.getRemainingAmount())
                 .lockedAmount(card.getLockedAmount())
                 .createdAt(card.getCreatedAt())

@@ -12,6 +12,7 @@ import com.example.bank.repository.user.UserRepository;
 import com.example.bank.repository.wallet.infini.InfiniCardRepository;
 import com.example.bank.service.wallet.infini.AdminInfiniCardService;
 import com.example.bank.service.wallet.infini.InfiniCardLockService;
+import com.example.bank.enums.wallet.CardLockedBy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -67,14 +68,14 @@ public class AdminInfiniCardServiceImpl implements AdminInfiniCardService {
     @Override
     public void lockCard(Long adminId, Long cardId) {
         InfiniCard card = find(cardId);
-        lockService.lockCard(card.getUserId(), cardId);
+        lockService.lockCard(card.getUserId(), cardId, CardLockedBy.ADMIN);
         log.info("Admin locked Infini card adminId={} cardId={} userId={}", adminId, cardId, card.getUserId());
     }
 
     @Override
     public void unlockCard(Long adminId, Long cardId) {
         InfiniCard card = find(cardId);
-        lockService.unlockCard(card.getUserId(), cardId);
+        lockService.unlockCard(card.getUserId(), cardId, CardLockedBy.ADMIN);
         log.info("Admin unlocked Infini card adminId={} cardId={} userId={}", adminId, cardId, card.getUserId());
     }
 

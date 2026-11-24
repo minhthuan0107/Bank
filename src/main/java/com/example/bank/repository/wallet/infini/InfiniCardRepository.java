@@ -1,6 +1,7 @@
 package com.example.bank.repository.wallet.infini;
 
 import com.example.bank.entity.wallet.infini.InfiniCard;
+import com.example.bank.enums.wallet.CardLockedBy;
 import com.example.bank.enums.wallet.CardStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,13 @@ import java.util.Optional;
 public interface InfiniCardRepository extends JpaRepository<InfiniCard, Long> {
 
     long countByUserId(Long userId);
+
+    @Query("select c.userId from InfiniCard c where c.id = :id")
+    Optional<Long> findOwnerId(@Param("id") Long id);
+
+    @Query("select c.id from InfiniCard c where c.userId = :userId and c.status = :status and c.lockedBy = :lockedBy")
+    java.util.List<Long> findIdsByUserIdAndLockedBy(@Param("userId") Long userId, @Param("status") CardStatus status,
+                                                    @Param("lockedBy") CardLockedBy lockedBy);
 
     // Admin search across all users. cardNumber matches the last four digits.
     @Query("""
