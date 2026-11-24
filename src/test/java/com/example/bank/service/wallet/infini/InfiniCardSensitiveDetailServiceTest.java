@@ -97,4 +97,22 @@ class InfiniCardSensitiveDetailServiceTest {
         var ex = assertThrows(WalletException.class, () -> service.getSensitiveDetail(1L, 9L));
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, ex.getStatus());
     }
+
+    @Test void readsOtherExpiryFormats() throws Exception {
+        for (String expiry : new String[]{"\"0829\"", "\"08/29\"", "\"8/29\"", "\"08/2029\"", "\"082029\"", "\"2029-08\"", "829"}) {
+            reveal("{\"card_number\":\"4111-1111-1111-1335\",\"cvv\":\"123\",\"expiration_mmyy\":" + expiry + "}");
+            var result = service.getSensitiveDetail(1L, 9L);
+            assertEquals(8, result.expiryMonth(), expiry);
+            assertEquals(2029, result.expiryYear(), expiry);
+        }
+    }
+
+    @Test void keepsLeadingZerosOfANumericCvvAndRejectsUnreadableExpiry() throws Exception {
+        reveal("{\"card_number\":\"4111111111111335\",\"cvv\":45,\"expiration_mmyy\":\"0829\"}");
+        assertEquals("045", service.getSensitiveDetail(1L, 9L).cvv());
+        for (String expiry : new String[]{"1329", "0029", "", "soon"}) {
+            reveal("{\"card_number\":\"4111111111111335\",\"cvv\":\"123\",\"expiration_mmyy\":\"" + expiry + "\"}");
+            assertThrows(WalletException.class, () -> service.getSensitiveDetail(1L, 9L), expiry);
+        }
+    }
 }

@@ -17,6 +17,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reveals card details through POST /v2/cards/reveal.
@@ -54,11 +59,14 @@ public class InfiniCardSensitiveDetailServiceImpl implements InfiniCardSensitive
             throw unavailable();
         }
 
-        String pan = data.path("card_number").asText("").replaceAll("\\s", "");
-        String cvv = data.path("cvv").asText("");
-        String mmyy = data.path("expiration_mmyy").asText("").replaceAll("\\D", "");
-        if (!pan.matches("\\d{12,19}") || !cvv.matches("\\d{3,4}") || !mmyy.matches("(0[1-9]|1[0-2])\\d{2}")) {
-            log.warn("Card reveal returned an unexpected format userId={} cardId={}", userId, cardId);
+        String pan = data.path("card_number").asText("").replaceAll("[\\s-]", "");
+        String cvv = padded(data.path("cvv"), 3);
+        YearMonth expiry = parseExpiry(padded(data.path("expiration_mmyy"), 4));
+        if (!pan.matches("\\d{12,19}") || !cvv.matches("\\d{3,4}") || expiry == null) {
+            // Only field names and masked shapes (9 = digit, A = letter): never the values.
+            log.warn("Card reveal returned an unexpected format userId={} cardId={} number={} cvv={} expiry={} fields={}",
+                    userId, cardId, shape(data.path("card_number")), shape(data.path("cvv")),
+                    shape(data.path("expiration_mmyy")), fieldNames(data));
             throw unavailable();
         }
         // Never hand out another card's details if Infini answered for the wrong card.
@@ -71,10 +79,50 @@ public class InfiniCardSensitiveDetailServiceImpl implements InfiniCardSensitive
         return CardSensitiveDetailResponse.builder()
                 .pan(pan)
                 .cvv(cvv)
-                .expiryMonth(Integer.parseInt(mmyy.substring(0, 2)))
-                .expiryYear(2000 + Integer.parseInt(mmyy.substring(2)))
+                .expiryMonth(expiry.getMonthValue())
+                .expiryYear(expiry.getYear())
                 .createdAt(card.getCreatedAt())
                 .build();
+    }
+
+    // A JSON number loses its leading zeros (e.g. 0829 -> 829).
+    private static String padded(JsonNode node, int length) {
+        String text = node.asText("").trim();
+        return node.isIntegralNumber() && text.length() < length
+                ? "0".repeat(length - text.length()) + text : text;
+    }
+
+    /** Accepts MMYY and MMYYYY, with or without a separator, and YYYY-MM / YYYY/MM. Null if unreadable. */
+    static YearMonth parseExpiry(String value) {
+        Matcher yearFirst = Pattern.compile("(20\\d{2})[/\\-. ](\\d{1,2})").matcher(value);
+        Matcher monthFirst = Pattern.compile("(\\d{1,2})\\s*[/\\-. ]\\s*((?:20)?\\d{2})|(\\d{2})((?:20)?\\d{2})").matcher(value);
+        String month;
+        String year;
+        if (yearFirst.matches()) {
+            year = yearFirst.group(1);
+            month = yearFirst.group(2);
+        } else if (monthFirst.matches()) {
+            month = monthFirst.group(1) != null ? monthFirst.group(1) : monthFirst.group(3);
+            year = monthFirst.group(2) != null ? monthFirst.group(2) : monthFirst.group(4);
+        } else {
+            return null;
+        }
+        int m = Integer.parseInt(month);
+        int y = Integer.parseInt(year);
+        return m < 1 || m > 12 ? null : YearMonth.of(y < 100 ? 2000 + y : y, m);
+    }
+
+    private static String shape(JsonNode node) {
+        if (node.isMissingNode() || node.isNull()) return "missing";
+        if (node.isContainerNode()) return node.getNodeType().name();
+        String masked = node.asText().replaceAll("\\d", "9").replaceAll("\\p{L}", "A");
+        return node.getNodeType() + "(" + (masked.length() > 40 ? "length " + masked.length() : masked) + ")";
+    }
+
+    private static List<String> fieldNames(JsonNode node) {
+        List<String> names = new ArrayList<>();
+        node.fieldNames().forEachRemaining(names::add);
+        return names;
     }
 
     // Fails closed: if the counter cannot be checked, details are not revealed.
