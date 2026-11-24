@@ -4,6 +4,7 @@ import com.example.bank.common.constants.MessageKeys;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.entity.wallet.Wallet;
 import com.example.bank.entity.wallet.infini.InfiniCard;
+import com.example.bank.enums.wallet.CardLockedBy;
 import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.enums.wallet.Stablecoin;
 import com.example.bank.repository.wallet.WalletRepository;
@@ -37,12 +38,16 @@ public class InfiniCardLockTransactionServiceImpl implements InfiniCardLockTrans
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public InfiniCard block(Long userId, Long cardId) {
+    public BlockResult block(Long userId, Long cardId, CardLockedBy actor) {
         Wallet wallet = wallets.findByUserIdAndCurrencyForUpdate(userId, Stablecoin.USD)
                 .orElseThrow(() -> new WalletException(MessageKeys.WALLET_NOT_FOUND, HttpStatus.NOT_FOUND));
         InfiniCard card = cards.findByIdAndUserIdForUpdate(cardId, userId)
                 .orElseThrow(() -> new WalletException(MessageKeys.CARD_NOT_FOUND, HttpStatus.NOT_FOUND));
         if (card.getStatus() == CardStatus.BLOCKED) {
+            if (actor == CardLockedBy.ADMIN && card.getLockedBy() != CardLockedBy.ADMIN) {
+                card.setLockedBy(CardLockedBy.ADMIN);
+                return new BlockResult(card, false);
+            }
             throw new WalletException(MessageKeys.CARD_ALREADY_BLOCKED, HttpStatus.CONFLICT);
         }
         if (card.getStatus() != CardStatus.ACTIVE) {
@@ -62,17 +67,20 @@ public class InfiniCardLockTransactionServiceImpl implements InfiniCardLockTrans
         card.setLockedAmount(amount);
         card.setRemainingAmount(BigDecimal.ZERO);
         card.setStatus(CardStatus.BLOCKED);
-        return card;
+        card.setLockedBy(actor);
+        return new BlockResult(card, true);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean unblock(Long cardId) {
-        InfiniCard card = cards.findById(cardId).orElseThrow();
+    public UnblockResult unblock(Long cardId, CardLockedBy actor) {
+        // Only the owner ID is read here: loading the entity would hide concurrent changes from the locked read.
+        Long ownerId = cards.findOwnerId(cardId).orElseThrow();
         // Same lock order as block(): wallet first, then card.
-        Wallet wallet = wallets.findByUserIdAndCurrencyForUpdate(card.getUserId(), Stablecoin.USD).orElseThrow();
-        card = cards.findByIdForUpdate(cardId).orElseThrow();
-        if (card.getStatus() != CardStatus.BLOCKED) return false;
+        Wallet wallet = wallets.findByUserIdAndCurrencyForUpdate(ownerId, Stablecoin.USD).orElseThrow();
+        InfiniCard card = cards.findByIdForUpdate(cardId).orElseThrow();
+        if (card.getStatus() != CardStatus.BLOCKED) return UnblockResult.NOT_BLOCKED;
+        if (!actor.mayRelease(card.getLockedBy())) return UnblockResult.NOT_ALLOWED;
         BigDecimal amount = card.getLockedAmount() == null ? BigDecimal.ZERO : card.getLockedAmount();
         if (wallet.getFrozenBalance().compareTo(amount) < 0) {
             throw new IllegalStateException("Frozen balance lower than locked card balance");
@@ -82,6 +90,7 @@ public class InfiniCardLockTransactionServiceImpl implements InfiniCardLockTrans
         card.setRemainingAmount(card.getRemainingAmount().add(amount));
         card.setLockedAmount(BigDecimal.ZERO);
         card.setStatus(CardStatus.ACTIVE);
-        return true;
+        card.setLockedBy(null);
+        return UnblockResult.UNBLOCKED;
     }
 }

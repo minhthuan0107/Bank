@@ -3,6 +3,7 @@ package com.example.bank.service.wallet.infini;
 import com.example.bank.common.config.properties.WalletProperties;
 import com.example.bank.common.exception.wallet.WalletException;
 import com.example.bank.entity.wallet.infini.InfiniCard;
+import com.example.bank.enums.wallet.CardLockedBy;
 import com.example.bank.enums.wallet.CardStatus;
 import com.example.bank.projection.UserNameProjection;
 import com.example.bank.repository.user.UserRepository;
@@ -61,13 +62,13 @@ class AdminInfiniCardServiceTest {
     @Test void adminLockUsesTheCardOwner() {
         when(cards.findById(9L)).thenReturn(Optional.of(InfiniCard.builder().id(9L).userId(1L).build()));
         service.lockCard(100L, 9L);
-        verify(lockService).lockCard(1L, 9L);
+        verify(lockService).lockCard(1L, 9L, CardLockedBy.ADMIN);
     }
 
     @Test void adminUnlockUsesTheCardOwner() {
         when(cards.findById(9L)).thenReturn(Optional.of(InfiniCard.builder().id(9L).userId(1L).build()));
         service.unlockCard(100L, 9L);
-        verify(lockService).unlockCard(1L, 9L);
+        verify(lockService).unlockCard(1L, 9L, CardLockedBy.ADMIN);
     }
 
     @Test void unknownCardIsNotFound() {

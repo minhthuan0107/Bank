@@ -52,9 +52,22 @@ Endpoint riêng, không dùng chung `/admin/cards` (thẻ Slash) để không l�
 
 Khóa/mở của admin dùng đúng luồng của user (cùng hạch toán và kiểm tra lại với Infini). Log ghi `adminId`, `cardId` và `userId`. Danh sách không trả số thẻ đầy đủ hay ID thẻ phía Infini; có `locked_amount` để thấy số dư đang bị khóa.
 
+## Ai được mở khóa (`locked_by`, Flyway V16)
+
+| `locked_by` | Ai khóa | User mở | Mở tài khoản | Admin mở thẻ |
+| --- | --- | --- | --- | --- |
+| `USER` | Chủ thẻ | Được | Không | Được |
+| `ACCOUNT` | Admin khóa cả tài khoản | Không (403) | Được | Được |
+| `ADMIN` | Admin khóa riêng thẻ | Không (403) | Không | Được |
+
+- Admin khóa thẻ đang bị `USER`/`ACCOUNT` khóa thì chuyển thành `ADMIN`, không chuyển tiền lần nữa.
+- Nếu admin khóa đúng lúc user đang mở, khóa của admin thắng và thẻ được `freeze` lại.
+- Thẻ đã khóa trước V16 không rõ ai khóa, nên được ghi là `ADMIN`.
+- API thẻ trả thêm `locked_by`; FE nên ẩn nút mở khóa khi khác `USER`.
+
 ## Admin khóa/mở tài khoản user
 
-Khi admin khóa user (`UserLockedEvent`), hệ thống khóa mọi thẻ Slash **và mọi thẻ Infini `ACTIVE`** của user. Khi admin mở lại, mở mọi thẻ `BLOCKED`, kể cả thẻ user tự khóa trước đó (giống cách làm với thẻ Slash). Lỗi của từng thẻ được ghi log và không chặn các thẻ còn lại.
+Khóa tài khoản khóa mọi thẻ Infini `ACTIVE` (`ACCOUNT`). Mở tài khoản chỉ mở các thẻ `ACCOUNT`. Thẻ Slash giữ hành vi cũ. Lỗi từng thẻ được ghi log và không chặn các thẻ còn lại.
 
 ## Giả định cần kiểm tra trên Infini
 

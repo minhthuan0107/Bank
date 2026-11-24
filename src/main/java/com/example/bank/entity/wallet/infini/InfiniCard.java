@@ -1,6 +1,7 @@
 package com.example.bank.entity.wallet.infini;
 
 import com.example.bank.common.model.BaseEntity;
+import com.example.bank.enums.wallet.CardLockedBy;
 import com.example.bank.enums.wallet.CardStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -68,4 +69,9 @@ public class InfiniCard extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private CardStatus status;
+
+    // Set only while the card is BLOCKED.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "locked_by", length = 10)
+    private CardLockedBy lockedBy;
 }

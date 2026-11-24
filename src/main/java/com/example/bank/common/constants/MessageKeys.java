@@ -452,6 +452,7 @@ public class MessageKeys {
     // Infini card lock / unlock
     public static final String INFINI_CARD_LOCK_FAILED = "infini.card.lock_failed";
     public static final String INFINI_CARD_UNLOCK_FAILED = "infini.card.unlock_failed";
+    public static final String INFINI_CARD_LOCKED_BY_ADMIN = "infini.card.locked_by_admin";
     public static final String VALIDATION_CARD_REQUEST_ID_REQUIRED = "validation.card.request_id.required";
     public static final String VALIDATION_CARD_PRODUCT_REQUIRED = "validation.card.product.required";
     public static final String VALIDATION_CARD_NAME_MAX = "validation.card.name.max";

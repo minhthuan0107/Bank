@@ -10,6 +10,7 @@ import com.example.bank.dto.response.wallet.infini.InfiniFundingResponse;
 import com.example.bank.service.wallet.infini.InfiniFundingService;
 import com.example.bank.service.wallet.infini.InfiniCardSensitiveDetailService;
 import com.example.bank.service.wallet.infini.InfiniCardLockService;
+import com.example.bank.enums.wallet.CardLockedBy;
 import com.example.bank.dto.response.wallet.user.CardSensitiveDetailResponse;
 import org.springframework.http.CacheControl;
 import jakarta.validation.Valid;
@@ -94,7 +95,7 @@ public class InfiniCardController {
             @AuthenticationPrincipal UserDetailsImpl currentUser,
             @PathVariable Long cardId
     ) {
-        lockService.lockCard(currentUser.getId(), cardId);
+        lockService.lockCard(currentUser.getId(), cardId, CardLockedBy.USER);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(), i18n.getLocalizedMessage(MessageKeys.CARD_LOCK_SUCCESS), null));
     }
@@ -105,7 +106,7 @@ public class InfiniCardController {
             @AuthenticationPrincipal UserDetailsImpl currentUser,
             @PathVariable Long cardId
     ) {
-        lockService.unlockCard(currentUser.getId(), cardId);
+        lockService.unlockCard(currentUser.getId(), cardId, CardLockedBy.USER);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(), i18n.getLocalizedMessage(MessageKeys.CARD_UNLOCK_SUCCESS), null));
     }
