@@ -33,6 +33,19 @@ public class InfiniFundingResponse {
     @JsonProperty("card_balance")
     private BigDecimal cardBalance;
 
+    // Known reason of a FAILED order (TOP_UP_TOO_SMALL, WITHDRAW_COOLDOWN), otherwise null.
+    @JsonProperty("failure_reason")
+    private String failureReason;
+
+    private static String failureReason(InfiniFundingOrder order) {
+        if (!InfiniFundingOrder.FAILED.equals(order.getStatus()) || order.getReviewReason() == null) return null;
+        return switch (order.getReviewReason()) {
+            case "PROVIDER_ERROR_21021" -> "TOP_UP_TOO_SMALL"; // Seen for 1 USD; not documented by Infini.
+            case "PROVIDER_ERROR_21026" -> "WITHDRAW_COOLDOWN";
+            default -> null;
+        };
+    }
+
     public static InfiniFundingResponse from(InfiniFundingOrder order) {
         return InfiniFundingResponse.builder()
                 .requestId(order.getRequestId())
@@ -41,6 +54,7 @@ public class InfiniFundingResponse {
                 .cardId(order.getCardId())
                 .amount(order.getAmount())
                 .cardBalance(order.getProviderCardBalance())
+                .failureReason(failureReason(order))
                 .build();
     }
 }

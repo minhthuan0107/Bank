@@ -429,6 +429,9 @@ public class MessageKeys {
 
     // Infini card funding (top-up / withdraw)
     public static final String INFINI_FUNDING_INVALID_AMOUNT = "infini.funding.invalid_amount";
+    public static final String INFINI_FUNDING_TOPUP_MIN = "infini.funding.topup_min";
+    public static final String INFINI_FUNDING_MIN_CARD_BALANCE = "infini.funding.min_card_balance";
+    public static final String INFINI_FUNDING_WITHDRAW_COOLDOWN = "infini.funding.withdraw_cooldown";
     public static final String INFINI_FUNDING_REQUEST_CONFLICT = "infini.funding.request_conflict";
     public static final String INFINI_FUNDING_ALREADY_PENDING = "infini.funding.already_pending";
     public static final String INFINI_FUNDING_CARD_NOT_ACTIVE = "infini.funding.card_not_active";

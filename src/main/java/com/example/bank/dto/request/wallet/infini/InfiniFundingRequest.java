@@ -20,7 +20,8 @@ public class InfiniFundingRequest {
     private UUID requestId;
 
     @NotNull(message = "{" + MessageKeys.VALIDATION_CARD_AMOUNT_REQUIRED + "}")
-    @DecimalMin(value = "10.00", message = "{" + MessageKeys.INFINI_FUNDING_INVALID_AMOUNT + "}")
+    // The top-up minimum is checked by InfiniFundingPolicy.
+    @DecimalMin(value = "0.01", message = "{" + MessageKeys.INFINI_FUNDING_INVALID_AMOUNT + "}")
     @Digits(integer = 15, fraction = 2, message = "{" + MessageKeys.INFINI_FUNDING_INVALID_AMOUNT + "}")
     private BigDecimal amount;
 }

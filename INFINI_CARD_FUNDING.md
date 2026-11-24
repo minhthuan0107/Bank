@@ -3,7 +3,10 @@
 ## 1. Quy tắc
 
 - Không thu phí. Nạp bao nhiêu thì ví giảm bấy nhiêu; rút bao nhiêu thì ví tăng bấy nhiêu.
-- Mỗi lần tối thiểu **10 USD**, tối đa 2 chữ số thập phân.
+- Nạp tối thiểu **10 USD**. Rút bao nhiêu cũng được, miễn thẻ **còn ít nhất 1 USD** (theo số dư thật bên Infini).
+- **Không rút được trong 30 phút sau khi nạp** (quy định của Infini, mã `21026`). Backend chặn trước (31 phút) và trả 409 kèm `data.available_at`.
+- Số tiền tối đa 2 chữ số thập phân.
+- Lệnh `FAILED` có `failure_reason` khi biết lý do: `TOP_UP_TOO_SMALL` (`21021`), `WITHDRAW_COOLDOWN` (`21026`).
 - Chỉ thẻ `ACTIVE` mới nạp hoặc rút được.
 - Mỗi thẻ chỉ có **một** yêu cầu nạp/rút đang chờ tại một thời điểm.
 - Trước khi rút, backend hỏi Infini **số dư thật** của thẻ, vì số dư thẻ trong database chưa trừ chi tiêu.
@@ -81,7 +84,7 @@ Cấu hình trên Infini: Developer → Webhook Settings, URL HTTPS công khai t
 | `INFINI_WEBHOOK_SECRET` | Khóa ký webhook. Để trống thì webhook bị từ chối (503) và Infini thử lại sau |
 | `INFINI_FUNDING_POLL_DELAY_MS` | Chu kỳ scheduler dọn lệnh và thử lại webhook, mặc định `30000` |
 
-## 7. Database (Flyway V15)
+## 7. Database (Flyway V15, V17)
 
 - `infini_funding_orders`: một dòng cho mỗi `requestId`; `provider_tx_id` duy nhất.
 - `infini_webhook_events`: sự kiện webhook đã xác minh.

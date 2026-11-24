@@ -1077,7 +1077,7 @@
                 }
               }
             },
-            "description": "Moves funding_amount from the card back to the wallet. The backend checks the real card balance at Infini first."
+            "description": "Moves funding_amount from the card back to the wallet. Any amount, but the card must keep at least 1 USD (real balance at Infini)."
           },
           "event": [
             {

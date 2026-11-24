@@ -48,7 +48,7 @@ public class InfiniFundingTransactionServiceImpl implements InfiniFundingTransac
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Reservation reserve(String type, InfiniFundingRequest request, Long userId, Long cardId,
                                String tokenType, BigDecimal providerCardBalance) {
-        InfiniFundingPolicy.validate(request.getAmount());
+        InfiniFundingPolicy.validate(type, request.getAmount());
         Wallet wallet = wallets.findByUserIdAndCurrencyForUpdate(userId, Stablecoin.USD)
                 .orElseThrow(() -> new WalletException(MessageKeys.WALLET_NOT_FOUND, HttpStatus.NOT_FOUND));
 
@@ -88,8 +88,9 @@ public class InfiniFundingTransactionServiceImpl implements InfiniFundingTransac
             wallet.setFrozenBalance(wallet.getFrozenBalance().add(amount));
         } else {
             // The real balance comes from Infini: local card balances do not track spending yet.
-            if (providerCardBalance == null || providerCardBalance.compareTo(amount) < 0 ||
-                    wallet.getAllocatedBalance().compareTo(amount) < 0) {
+            requireWithdrawCooldownOver(cardId);
+            InfiniFundingPolicy.validateWithdrawal(providerCardBalance, amount);
+            if (wallet.getAllocatedBalance().compareTo(amount) < 0) {
                 throw new WalletException(MessageKeys.INSUFFICIENT_CARD_BALANCE, HttpStatus.BAD_REQUEST);
             }
         }
@@ -228,6 +229,16 @@ public class InfiniFundingTransactionServiceImpl implements InfiniFundingTransac
             throw new IllegalStateException("Funding reservation mismatch");
         }
         return wallet;
+    }
+
+    private void requireWithdrawCooldownOver(Long cardId) {
+        var lastTopUp = orders.findFirstByCardIdAndTypeAndStatusOrderBySubmitStartedAtDesc(cardId, TOP_UP, SUCCEEDED);
+        if (lastTopUp == null || lastTopUp.isEmpty() || lastTopUp.get().getSubmitStartedAt() == null) return;
+        Instant availableAt = lastTopUp.get().getSubmitStartedAt().plus(InfiniFundingPolicy.WITHDRAW_COOLDOWN);
+        if (Instant.now().isBefore(availableAt)) {
+            throw new WalletException(MessageKeys.INFINI_FUNDING_WITHDRAW_COOLDOWN, HttpStatus.CONFLICT,
+                    Map.of("available_at", availableAt.toString()));
+        }
     }
 
     private InfiniFundingOrder locked(String id) {

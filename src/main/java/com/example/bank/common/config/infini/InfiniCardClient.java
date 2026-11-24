@@ -7,6 +7,7 @@ import com.example.bank.entity.wallet.infini.InfiniFundingOrder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ import java.util.*;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class InfiniCardClient {
     private final InfiniProperties properties;
     private final ObjectMapper mapper;
@@ -201,13 +203,24 @@ public class InfiniCardClient {
         }
         JsonNode root = mapper.readTree(response.body());
         if (root != null && root.path("code").isIntegralNumber() && root.path("code").intValue() != 0) {
-            // Only the numeric code is kept; the message is free text and is never stored or logged.
+            // The message is free text: logged masked for diagnosis, never stored or returned to clients.
+            log.warn("Infini business error target={} code={} message={}", target.split("\\?")[0],
+                    root.path("code").intValue(), maskMessage(root.path("message").asText("")));
             throw new BusinessError(root.path("code").intValue());
         }
         if (root == null || !root.path("code").isIntegralNumber() || !root.path("data").isObject()) {
             throw new IllegalStateException("Infini business result requires reconciliation");
         }
         return root.get("data");
+    }
+
+    /** Hides emails, identifiers and long digit runs (e.g. card numbers), and limits the length. */
+    static String maskMessage(String message) {
+        String masked = message.replaceAll("[\\r\\n\\t]+", " ")
+                .replaceAll("[\\w.+-]+@[\\w.-]+", "<email>")
+                .replaceAll("\\b[0-9a-fA-F]{8}-[0-9a-fA-F-]{20,}\\b", "<id>")
+                .replaceAll("\\d(?:[ -]?\\d){7,}", "<digits>");
+        return masked.length() > 200 ? masked.substring(0, 200) : masked;
     }
 
     /** HTTP 2xx with a non-zero business code. */

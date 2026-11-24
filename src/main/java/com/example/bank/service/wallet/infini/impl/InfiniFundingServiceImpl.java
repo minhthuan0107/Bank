@@ -46,7 +46,7 @@ public class InfiniFundingServiceImpl implements InfiniFundingService {
     @Override
     public InfiniFundingResponse topUp(Long userId, Long cardId, InfiniFundingRequest request) {
         client.validateConfiguration();
-        InfiniFundingPolicy.validate(request.getAmount());
+        InfiniFundingPolicy.validate(TOP_UP, request.getAmount());
         var reservation = ledger.reserve(TOP_UP, request, userId, cardId, properties.getTokenType(), null);
         return submit(reservation, userId);
     }
@@ -54,7 +54,7 @@ public class InfiniFundingServiceImpl implements InfiniFundingService {
     @Override
     public InfiniFundingResponse withdraw(Long userId, Long cardId, InfiniFundingRequest request) {
         client.validateConfiguration();
-        InfiniFundingPolicy.validate(request.getAmount());
+        InfiniFundingPolicy.validate(REDEEM, request.getAmount());
         BigDecimal providerBalance = null;
         // A retry of a stored request needs no new balance check.
         if (!orders.existsById(request.getRequestId().toString())) {
