@@ -198,4 +198,48 @@ class InfiniFundingLedgerTest {
         assertEquals("PROVIDER_REPORTED_FAILED", order.getReviewReason());
         assertEquals(0, wallet.getAllocatedBalance().compareTo(new BigDecimal("70")));
     }
+
+    @Test void withdrawalMayBeSmallButTheCardKeepsOneDollar() {
+        request.setAmount(new BigDecimal("0.50"));
+        assertTrue(ledger.reserve(REDEEM, request, 1L, 9L, "USDT", new BigDecimal("1.50")).submit());
+
+        request.setRequestId(UUID.randomUUID());
+        request.setAmount(new BigDecimal("9.00"));
+        assertTrue(ledger.reserve(REDEEM, request, 1L, 9L, "USDT", new BigDecimal("10")).submit());
+
+        request.setRequestId(UUID.randomUUID());
+        request.setAmount(new BigDecimal("9.01"));
+        var ex = assertThrows(WalletException.class,
+                () -> ledger.reserve(REDEEM, request, 1L, 9L, "USDT", new BigDecimal("10")));
+        assertEquals("infini.funding.min_card_balance", ex.getMessageKey());
+    }
+
+    @Test void topUpBelowTenIsRejected() {
+        request.setAmount(new BigDecimal("9.99"));
+        var ex = assertThrows(WalletException.class, () -> ledger.reserve(TOP_UP, request, 1L, 9L, "USDT", null));
+        assertEquals("infini.funding.topup_min", ex.getMessageKey());
+        assertEquals(0, wallet.getFrozenBalance().signum());
+    }
+
+    @Test void withdrawalWaitsThirtyMinutesAfterATopUp() {
+        var topUp = new InfiniFundingOrder();
+        topUp.setSubmitStartedAt(java.time.Instant.now().minusSeconds(29 * 60));
+        when(orders.findFirstByCardIdAndTypeAndStatusOrderBySubmitStartedAtDesc(9L, TOP_UP, SUCCEEDED))
+                .thenReturn(Optional.of(topUp));
+        var ex = assertThrows(WalletException.class,
+                () -> ledger.reserve(REDEEM, request, 1L, 9L, "USDT", new BigDecimal("40")));
+        assertEquals("infini.funding.withdraw_cooldown", ex.getMessageKey());
+        assertEquals(Map.of("available_at", topUp.getSubmitStartedAt().plusSeconds(31 * 60).toString()), ex.getData());
+        verify(orders, never()).saveAndFlush(any());
+
+        topUp.setSubmitStartedAt(java.time.Instant.now().minusSeconds(32 * 60));
+        assertTrue(ledger.reserve(REDEEM, request, 1L, 9L, "USDT", new BigDecimal("40")).submit());
+    }
+
+    @Test void responseExplainsKnownProviderRejections() {
+        var order = reserve(REDEEM, new BigDecimal("40"));
+        ledger.rejected(order.getRequestId(), "PROVIDER_ERROR_21026");
+        assertEquals("WITHDRAW_COOLDOWN",
+                com.example.bank.dto.response.wallet.infini.InfiniFundingResponse.from(order).getFailureReason());
+    }
 }

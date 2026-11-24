@@ -23,6 +23,8 @@ public class I18nConfig {
     @Bean
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver resolver = new AcceptHeaderLocaleResolver();
+        // Only English is complete, and the UI has no other language the messages exist in.
+        resolver.setSupportedLocales(java.util.List.of(Locale.ENGLISH));
         resolver.setDefaultLocale(Locale.ENGLISH);
         return resolver;
     }

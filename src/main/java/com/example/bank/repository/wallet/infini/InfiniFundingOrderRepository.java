@@ -23,6 +23,9 @@ public interface InfiniFundingOrderRepository extends JpaRepository<InfiniFundin
 
     Optional<InfiniFundingOrder> findFirstByCardIdAndStatusInOrderByCreatedAtAsc(Long cardId, Collection<String> statuses);
 
+    Optional<InfiniFundingOrder> findFirstByCardIdAndTypeAndStatusOrderBySubmitStartedAtDesc(
+            Long cardId, String type, String status);
+
     Optional<InfiniFundingOrder> findByProviderTxId(String providerTxId);
 
     // Sent, but the result was never recorded: candidates for a provider webhook.
